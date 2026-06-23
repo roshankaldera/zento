@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 154 32" width="154" height="32">
+    <defs>
+    <style>
+        .logo-text {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 38px;
+            font-weight: 800;
+            fill: #F9FAFB;
+        }
+        .logo-z {
+            fill: #60A5FA;
+        }
+    </style>
+    </defs>
+    
+    <!-- Grouped for accessibility -->
+    <g aria-label="Zento">
+    <!-- 'Z' constructed from a mirrored USD symbol -->
+    <!-- scale(-1, 1) flips the horizontal axis. x="-22" places it nicely within the frame -->
+    <text x="-22" y="32" transform="scale(-1, 1)" class="logo-text logo-z" text-anchor="middle">$</text>
+    
+    <!-- The remaining letters "ento" snug against the Z -->
+    <text x="35" y="32" class="logo-text">ento</text>
+</g>
+
+</svg>

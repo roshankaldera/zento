@@ -1,0 +1,696 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Per-module document-number sequences. `current_no` holds the next number to
+/// issue; the save flow formats `<prefix><current_no padded to 6>` then
+/// increments it (see NumberingService).
+model Numbering {
+  prefix    String @id @db.VarChar(10)
+  module    String @db.VarChar(50)
+  currentNo Int    @default(1) @map("current_no")
+
+  @@map("numbering")
+}
+
+model Crop {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique @db.VarChar(50)
+  remark String? @db.VarChar(50)
+  status Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  @@map("crop")
+}
+
+model AccountCategory {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique @db.VarChar(50)
+  remark String? @db.VarChar(50)
+  status Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  accounts Account[]
+
+  @@map("account_category")
+}
+
+model JournalCategory {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique @db.VarChar(50)
+  remark String? @db.VarChar(50)
+  status Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  journals   Journal[]
+  recurrings Recurring[]
+
+  @@map("journal_category")
+}
+
+model Fleet {
+  id            Int    @id @default(autoincrement())
+  vehicleNo     String @map("vehicle_no") @db.VarChar(10)
+  licenseDate   String @map("license_date") @db.VarChar(5) // mm/dd
+  insuranceDate String @map("insurance_date") @db.VarChar(5) // mm/dd
+  status        Int    @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  @@map("fleet")
+}
+
+model Asset {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique @db.VarChar(100)
+  type   Int     @db.SmallInt // 1 = Investment, 2 = Vehicle, 3 = Building, 4 = Solar
+  status Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+  remark String? @db.VarChar(100)
+
+  rents          Rent[]
+  soloars        Soloar[]
+  journalLines   JournalLine[]
+  recurringLines RecurringLine[]
+
+  @@map("asset")
+}
+
+model Inventory {
+  id                   Int    @id @default(autoincrement())
+  applicableBusinesses Int[]  @map("applicable_businesses")
+  name                 String @unique @db.VarChar(100)
+  uom                  Int    @default(1) @db.SmallInt // 1=Nos, 2=KG, 3=Gram, 4=Liter, 5=Mililiter
+  status               Int    @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  lines                InventoryStock[]
+  itemTransactionLines ItemTransactionLine[]
+
+  @@map("inventory")
+}
+
+model InventoryStock {
+  id         Int     @id @default(autoincrement())
+  mainId     Int     @map("main_id")
+  businessId Int     @map("business_id")
+  quantity   Decimal @default(0) @db.Decimal(18, 2)
+  avgCost    Decimal @default(0) @map("avg_cost") @db.Decimal(18, 2)
+
+  inventory Inventory @relation(fields: [mainId], references: [id], onDelete: Cascade)
+  business  Business  @relation(fields: [businessId], references: [id])
+
+  @@map("inventory_stock")
+}
+
+model ExchangeRate {
+  id         Int      @id @default(autoincrement())
+  currencyId Int      @map("currency_id") // 2 = USD, 3 = EURO
+  date       DateTime @db.Date
+  rate       Decimal  @db.Decimal(18, 2)
+
+  // One rate per currency per date.
+  @@unique([currencyId, date])
+  @@map("exchange_rate")
+}
+
+model User {
+  id                   Int     @id @default(autoincrement())
+  fullName             String  @map("full_name") @db.VarChar(100)
+  userName             String  @unique @map("user_name") @db.VarChar(100)
+  password             String  @db.VarChar(100)
+  defaultBusiness      Int?    @map("default_business")
+  accessibleBusinesses Int[]   @map("accessible_businesses")
+  status               Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+  remark               String? @db.VarChar(100)
+
+  @@map("user")
+}
+
+model Soloar {
+  id           Int      @id @default(autoincrement())
+  soloarId     Int      @map("soloar_id")
+  date         DateTime @db.Date
+  meterReading Decimal  @map("meter_reading") @db.Decimal(18, 2)
+
+  asset Asset @relation(fields: [soloarId], references: [id])
+
+  @@map("soloar")
+}
+
+model Rent {
+  id                      Int      @id @default(autoincrement())
+  businessId              Int      @map("business_id")
+  assetId                 Int      @map("asset_id")
+  tenant                  String   @db.VarChar(100)
+  advancedPayment         Decimal  @map("advanced_payment") @db.Decimal(18, 2)
+  securityBond            Decimal  @map("security_bond") @db.Decimal(18, 2)
+  rentValue               Decimal  @map("rent_value") @db.Decimal(18, 2)
+  whtValue                Decimal  @map("wht_value") @db.Decimal(18, 2)
+  whtCertificateCollected Boolean  @default(false) @map("wht_certificate_collected")
+  startDate               DateTime @map("start_date") @db.Date
+  endDate                 DateTime @map("end_date") @db.Date
+  paymentDay              Int      @map("payment_day") @db.SmallInt // 1 - 31
+  status                  Int      @db.SmallInt // 1 = Active, 2 = Finish, 3 = Canceled
+
+  business Business @relation(fields: [businessId], references: [id])
+  asset    Asset    @relation(fields: [assetId], references: [id])
+
+  @@map("rent")
+}
+
+model Supplier {
+  id            Int     @id @default(autoincrement())
+  name          String  @unique @db.VarChar(100)
+  contactPerson String? @map("contact_person") @db.VarChar(100)
+  contactNo     String? @map("contact_no") @db.VarChar(10)
+  balance       Decimal @default(0) @db.Decimal(18, 2)
+  status        Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  journalLines   JournalLine[]
+  recurringLines RecurringLine[]
+
+  @@map("supplier")
+}
+
+model Account {
+  id         Int    @id @default(autoincrement())
+  businessId Int    @map("business_id")
+  code       String @unique @db.VarChar(20)
+  name       String @unique @db.VarChar(20)
+  groupId    Int    @map("group_id")
+  status     Int    @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  business       Business        @relation(fields: [businessId], references: [id])
+  group          AccountCategory @relation(fields: [groupId], references: [id])
+  budgetLines    BudgetLine[]
+  journalLines   JournalLine[]
+  recurringLines RecurringLine[]
+
+  @@map("account")
+}
+
+model InventoryGroup {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique @db.VarChar(50)
+  remark String? @db.VarChar(50)
+  status Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  @@map("inventory_group")
+}
+
+model Business {
+  id            Int     @id @default(autoincrement())
+  name          String  @unique @db.VarChar(100)
+  type          Int     @db.SmallInt // 1 = Estate, 2 = Villa, 3 = Property, 4 = Investment
+  contactPerson String? @map("contact_person") @db.VarChar(100)
+  remark        String? @db.VarChar(100)
+  status        Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  accounts         Account[]
+  employees        Employee[]
+  banks            Bank[]
+  attendances      Attendance[]
+  bookings         Booking[]
+  kots             Kot[]
+  estateDivisions  EstateDivision[]
+  villaRooms       VillaRoom[]
+  coconutHarvests  CoconutHarvest[]
+  latexHarvests    LatexHarvest[]
+  rents            Rent[]
+  inventoryStocks  InventoryStock[]
+  itemTransactions ItemTransaction[]
+  budgets          Budget[]
+  reimbursements   Reimbursement[]
+  journals         Journal[]
+  recurrings       Recurring[]
+
+  @@map("business")
+}
+
+model Employee {
+  id         Int       @id @default(autoincrement())
+  businessId Int       @map("business_id")
+  empNo      String    @unique @map("emp_no") @db.VarChar(20)
+  nic        String    @unique @db.VarChar(12)
+  name       String    @db.VarChar(100)
+  mobile1    String?   @db.VarChar(10)
+  mobile2    String?   @db.VarChar(10)
+  address    String?   @db.VarChar(100)
+  dob        DateTime? @db.Date
+  attendType Int       @map("attend_type") @db.SmallInt // 1 = Shift, 2 = Hourly
+  status     Int       @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  business         Business          @relation(fields: [businessId], references: [id])
+  attendanceLines  AttendanceLine[]
+  leaves           Leave[]
+  loans            EmployeeLoan[]
+  latexLines       LatexLine[]
+  itemTransactions ItemTransaction[]
+  journalLines     JournalLine[]
+  recurringLines   RecurringLine[]
+
+  @@map("employee")
+}
+
+model Bank {
+  id         Int     @id @default(autoincrement())
+  businessId Int     @map("business_id")
+  type       Int     @db.SmallInt // 1 = Bank, 2 = Petty Cash
+  bank       String  @db.VarChar(20)
+  branch     String? @db.VarChar(20)
+  accountNo  String? @map("account_no") @db.VarChar(20)
+  cashFloat  Decimal @default(0) @map("cash_float") @db.Decimal(18, 2)
+  balance    Decimal @default(0) @db.Decimal(18, 2)
+  status     Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  business          Business       @relation(fields: [businessId], references: [id])
+  cashTransfersFrom CashTransfer[] @relation("CashTransferFromBank")
+  cashTransfersTo   CashTransfer[] @relation("CashTransferToBank")
+  journals          Journal[]
+  recurrings        Recurring[]
+
+  @@map("bank")
+}
+
+model CashTransfer {
+  id           Int      @id @default(autoincrement())
+  cashTransfer String?  @map("cash_transfer_no") @db.VarChar(15)
+  fromBank     Int      @map("from_bank")
+  toBank       Int      @map("to_bank")
+  date         DateTime @default(now()) @db.Date
+  value        Decimal  @db.Decimal(18, 2)
+  description  String?  @db.VarChar(100)
+  reference    String?  @db.VarChar(100)
+  status       Int      @default(1) @db.SmallInt // 1 = Draft, 2 = Finish, 3 = Canceled
+  postBy       Int      @map("post_by")
+  postTime     DateTime @default(now()) @map("post_time")
+
+  fromBankRef Bank @relation("CashTransferFromBank", fields: [fromBank], references: [id])
+  toBankRef   Bank @relation("CashTransferToBank", fields: [toBank], references: [id])
+
+  @@map("cash_transfer")
+}
+
+model Attendance {
+  id         Int      @id @default(autoincrement())
+  businessId Int      @map("business_id")
+  date       DateTime @db.Date
+  remark     String?  @db.VarChar(100)
+
+  business Business         @relation(fields: [businessId], references: [id])
+  lines    AttendanceLine[]
+
+  // One attendance header per business per date.
+  @@unique([businessId, date])
+  @@map("attendance")
+}
+
+model AttendanceLine {
+  id         Int     @id @default(autoincrement())
+  mainId     Int     @map("main_id")
+  employeeId Int     @map("employee_id")
+  shift      Int     @db.SmallInt // 1 = Full Day, 2 = Day, 3 = Night
+  hours      Decimal @db.Decimal(4, 2)
+  status     Int     @db.SmallInt // 1 = Pending, 2 = Present, 3 = Absent, 4 = Off
+  remark     String? @db.VarChar(100)
+
+  attendance Attendance @relation(fields: [mainId], references: [id], onDelete: Cascade)
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+
+  // An employee cannot repeat the same shift within one header (business + date).
+  @@unique([mainId, employeeId, shift])
+  @@map("attendance_line")
+}
+
+model Leave {
+  id         Int      @id @default(autoincrement())
+  date       DateTime @db.Date
+  employeeId Int      @map("employee_id")
+  period     Int      @db.SmallInt // 1 = Fullday, 2 = Halfday
+  reason     String?  @db.VarChar(100)
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  // An employee cannot have more than one leave on the same date.
+  @@unique([employeeId, date])
+  @@map("leave")
+}
+
+model Booking {
+  id            Int      @id @default(autoincrement())
+  bookingNo     String?  @map("booking_no") @db.VarChar(15)
+  businessId    Int      @map("business_id")
+  category      Int      @db.SmallInt // 1 = Direct, 2 = 3rd Party
+  roomIds       Int[]    @map("room_ids")
+  customer      String   @db.VarChar(100)
+  fromDate      DateTime @map("from_date") @db.Date
+  toDate        DateTime @map("to_date") @db.Date
+  pax           Int      @db.SmallInt
+  child         Int      @db.SmallInt
+  status        Int      @db.SmallInt // 1 = Tentative, 2 = Confirmed, 3 = Management
+  segment       Int      @db.SmallInt // 1 = OTA, 2 = Direct
+  currency      Int      @default(1) @db.SmallInt // 1 = LKR, 2 = USD, 3 = EURO
+  exRate        Decimal  @default(1) @map("ex_rate") @db.Decimal(18, 2)
+  invoiceValue  Decimal  @default(0) @map("invoice_value") @db.Decimal(18, 2)
+  vat           Decimal  @default(0) @db.Decimal(18, 2)
+  sscl          Decimal  @default(0) @db.Decimal(18, 2)
+  grossRevenue  Decimal  @default(0) @map("gross_revenue") @db.Decimal(18, 2)
+  commission    Decimal  @default(0) @db.Decimal(18, 2)
+  netRevenue    Decimal  @default(0) @map("net_revenue") @db.Decimal(18, 2)
+  bankCharges   Decimal  @default(0) @map("bank_charges") @db.Decimal(18, 2)
+  finalRevenue  Decimal  @default(0) @map("final_revenue") @db.Decimal(18, 2)
+  tscCommission Decimal  @default(0) @map("tsc_commission") @db.Decimal(18, 2)
+  payout        Decimal  @default(0) @db.Decimal(18, 2)
+
+  business Business @relation(fields: [businessId], references: [id])
+  kots     Kot[]
+
+  @@map("booking")
+}
+
+model Kot {
+  id          Int      @id @default(autoincrement())
+  businessId  Int      @map("business_id")
+  bookingId   Int      @map("booking_id")
+  requestTime DateTime @map("request_time")
+  remark      String?  @db.VarChar(500)
+
+  business Business  @relation(fields: [businessId], references: [id])
+  booking  Booking   @relation(fields: [bookingId], references: [id])
+  lines    KotLine[]
+
+  @@map("kot")
+}
+
+model KotLine {
+  id       Int     @id @default(autoincrement())
+  mainId   Int     @map("main_id")
+  item     String  @db.VarChar(100)
+  quantity Decimal @db.Decimal(18, 2)
+  remark   String? @db.VarChar(100)
+
+  kot Kot @relation(fields: [mainId], references: [id], onDelete: Cascade)
+
+  @@map("kot_line")
+}
+
+model EmployeeLoan {
+  id          Int       @id @default(autoincrement())
+  employeeId  Int       @map("employee_id")
+  issueDate   DateTime? @map("issue_date") @db.Date
+  value       Decimal   @db.Decimal(18, 2)
+  installment Decimal   @db.Decimal(18, 2)
+  dueDay      Int       @map("due_day")
+  balance     Decimal   @db.Decimal(18, 2)
+  status      Int       @default(1) @db.SmallInt // 1 = Active, 2 = Finish, 3 = Canceled
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("employee_loan")
+}
+
+model KotIngredient {
+  id     Int      @id @default(autoincrement())
+  kotIds Int[]    @map("kot_ids")
+  date   DateTime @db.Date
+  remark String?  @db.VarChar(100)
+
+  lines KotIngredientLine[]
+
+  @@map("kot_ingredient")
+}
+
+model KotIngredientLine {
+  id               Int     @id @default(autoincrement())
+  mainId           Int     @map("main_id")
+  item             String  @db.VarChar(100)
+  uom              Int     @default(1) @db.SmallInt // 1 = Nos, 2 = KG, 3 = Gram, 4 = Liter, 5 = Milliliter
+  requestQuantity  Decimal @map("request_quantity") @db.Decimal(18, 2)
+  receivedQuantity Decimal @map("received_quantity") @db.Decimal(18, 2)
+  remark           String? @db.VarChar(100)
+
+  kotIngredient KotIngredient @relation(fields: [mainId], references: [id], onDelete: Cascade)
+
+  @@map("kot_ingredient_line")
+}
+
+model EstateDivision {
+  id         Int     @id @default(autoincrement())
+  businessId Int     @map("business_id")
+  name       String  @db.VarChar(50)
+  remark     String? @db.VarChar(50)
+  status     Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  business             Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  coconutDivisionLines CoconutDivisionLine[]
+
+  @@unique([businessId, name])
+  @@map("estate_division")
+}
+
+model CoconutHarvest {
+  id       Int      @id @default(autoincrement())
+  estateId Int      @map("estate_id")
+  date     DateTime @default(now()) @db.Date
+  remark   String?  @db.VarChar(100)
+
+  estate Business              @relation(fields: [estateId], references: [id])
+  lines  CoconutDivisionLine[]
+
+  // One harvest per estate per date.
+  @@unique([estateId, date])
+  @@map("coconut_harvest")
+}
+
+model CoconutDivisionLine {
+  id         Int @id @default(autoincrement())
+  mainId     Int @map("main_id")
+  divisionId Int @map("division_id")
+  quantity   Int
+
+  coconutHarvest CoconutHarvest @relation(fields: [mainId], references: [id], onDelete: Cascade)
+  division       EstateDivision @relation(fields: [divisionId], references: [id])
+
+  @@map("coconut_division_line")
+}
+
+model LatexHarvest {
+  id       Int      @id @default(autoincrement())
+  estateId Int      @map("estate_id")
+  date     DateTime @db.Date
+  rainfall Decimal? @db.Decimal(18, 2)
+  remark   String?  @db.VarChar(100)
+
+  estate Business    @relation(fields: [estateId], references: [id])
+  lines  LatexLine[]
+
+  // One latex harvest per estate per date.
+  @@unique([estateId, date])
+  @@map("latex_harvest")
+}
+
+model LatexLine {
+  id         Int     @id @default(autoincrement())
+  mainId     Int     @map("main_id")
+  employeeId Int     @map("employee_id")
+  liter      Decimal @db.Decimal(18, 2)
+  ottapalu   Decimal @db.Decimal(18, 2)
+  status     Int     @db.SmallInt // 1=Present, 2=Absent, 3=Rain, 4=Rain+Work, 5=Another duty
+
+  latexHarvest LatexHarvest @relation(fields: [mainId], references: [id], onDelete: Cascade)
+  employee     Employee     @relation(fields: [employeeId], references: [id])
+
+  @@map("latex_line")
+}
+
+model VillaRoom {
+  id         Int     @id @default(autoincrement())
+  businessId Int     @map("business_id")
+  name       String  @db.VarChar(50)
+  remark     String? @db.VarChar(50)
+  status     Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, name])
+  @@map("villa_room")
+}
+
+model ItemTransaction {
+  id         Int      @id @default(autoincrement())
+  businessId Int      @map("business_id")
+  date       DateTime @db.Date
+  requestBy  Int?     @map("request_by")
+  type       Int      @db.SmallInt // 1 = Receive, 2 = Issue
+  total      Decimal  @default(0) @db.Decimal(18, 2) // computed: sum of line totals
+  remark     String?  @db.VarChar(100)
+
+  business  Business              @relation(fields: [businessId], references: [id])
+  requester Employee?             @relation(fields: [requestBy], references: [id])
+  lines     ItemTransactionLine[]
+
+  @@map("stock_trans")
+}
+
+model ItemTransactionLine {
+  id          Int     @id @default(autoincrement())
+  mainId      Int     @map("main_id")
+  itemId      Int     @map("item_id")
+  description String? @db.VarChar(100)
+  quantity    Decimal @db.Decimal(18, 2)
+  price       Decimal @db.Decimal(18, 2)
+  total       Decimal @db.Decimal(18, 2) // computed: quantity * price
+
+  itemTransaction ItemTransaction @relation(fields: [mainId], references: [id], onDelete: Cascade)
+  inventory       Inventory       @relation(fields: [itemId], references: [id])
+
+  @@map("stock_trans_line")
+}
+
+model Budget {
+  id         Int @id @default(autoincrement())
+  businessId Int @map("business_id")
+  year       Int
+
+  business Business     @relation(fields: [businessId], references: [id])
+  lines    BudgetLine[]
+
+  // Business rule: one budget per business per year.
+  @@unique([businessId, year])
+  @@map("budget")
+}
+
+model BudgetLine {
+  id          Int     @id @default(autoincrement())
+  mainId      Int     @map("main_id")
+  accountId   Int     @map("account_id")
+  description String? @db.VarChar(100)
+  january     Decimal @default(0) @db.Decimal(18, 2)
+  february    Decimal @default(0) @db.Decimal(18, 2)
+  march       Decimal @default(0) @db.Decimal(18, 2)
+  april       Decimal @default(0) @db.Decimal(18, 2)
+  may         Decimal @default(0) @db.Decimal(18, 2)
+  june        Decimal @default(0) @db.Decimal(18, 2)
+  july        Decimal @default(0) @db.Decimal(18, 2)
+  august      Decimal @default(0) @db.Decimal(18, 2)
+  september   Decimal @default(0) @db.Decimal(18, 2)
+  october     Decimal @default(0) @db.Decimal(18, 2)
+  november    Decimal @default(0) @db.Decimal(18, 2)
+  december    Decimal @default(0) @db.Decimal(18, 2)
+
+  budget  Budget  @relation(fields: [mainId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@map("budget_line")
+}
+
+model Reimbursement {
+  id              Int      @id @default(autoincrement())
+  businessId      Int      @map("business_id")
+  reimbursementNo String?  @map("reimbursement_no") @db.VarChar(20)
+  date            DateTime @db.Date
+  totalValue      Decimal  @default(0) @map("total_value") @db.Decimal(18, 2) // computed: sum of line values
+  status          Int      @default(1) @db.SmallInt // 1 = Draft, 2 = Finish, 3 = Canceled
+  remark          String?  @db.VarChar(100)
+  postBy          Int      @map("post_by")
+  postTime        DateTime @default(now()) @map("post_time")
+
+  business Business            @relation(fields: [businessId], references: [id])
+  lines    ReimbursementLine[]
+
+  @@map("reimbursement")
+}
+
+model ReimbursementLine {
+  id          Int       @id @default(autoincrement())
+  mainId      Int       @map("main_id")
+  billDate    DateTime? @map("bill_date") @db.Date
+  description String?   @db.VarChar(100)
+  reference   String?   @db.VarChar(100)
+  value       Decimal   @db.Decimal(18, 2)
+
+  reimbursement Reimbursement @relation(fields: [mainId], references: [id], onDelete: Cascade)
+
+  @@map("reimbursement_line")
+}
+
+model Journal {
+  id         Int      @id @default(autoincrement())
+  businessId Int      @map("business_id")
+  bankId     Int      @map("bank_id")
+  journalNo  String?  @map("journal_no") @db.VarChar(20)
+  category   Int
+  date       DateTime @default(now()) @db.Date
+  totalValue Decimal  @default(0) @map("total_value") @db.Decimal(18, 2) // computed: sum of line values
+  status     Int      @default(1) @db.SmallInt // 1 = Draft, 2 = Finish, 3 = Canceled
+  remark     String?  @db.VarChar(100)
+  postBy     Int      @map("post_by")
+  postTime   DateTime @default(now()) @map("post_time")
+
+  business        Business        @relation(fields: [businessId], references: [id])
+  bank            Bank            @relation(fields: [bankId], references: [id])
+  journalCategory JournalCategory @relation(fields: [category], references: [id])
+  lines           JournalLine[]
+
+  @@map("journal")
+}
+
+model JournalLine {
+  id          Int     @id @default(autoincrement())
+  mainId      Int     @map("main_id")
+  accountId   Int     @map("account_id")
+  type        Int     @db.SmallInt // 1 = Income, 2 = Expenses
+  description String? @db.VarChar(100)
+  reference   String? @db.VarChar(100)
+  assetId     Int?    @map("asset_id")
+  empId       Int?    @map("emp_id")
+  supplierId  Int?    @map("supplier_id")
+  value       Decimal @db.Decimal(18, 2)
+
+  journal  Journal   @relation(fields: [mainId], references: [id], onDelete: Cascade)
+  account  Account   @relation(fields: [accountId], references: [id])
+  asset    Asset?    @relation(fields: [assetId], references: [id])
+  employee Employee? @relation(fields: [empId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@map("journal_line")
+}
+
+model Recurring {
+  id           Int       @id @default(autoincrement())
+  businessId   Int       @map("business_id")
+  bankId       Int       @map("bank_id")
+  category     Int
+  recurringDay Int       @map("recurring_day") @db.SmallInt // day of month (1-31)
+  fromPeriod   DateTime? @map("from_period") @db.Date
+  toPeriod     DateTime? @map("to_period") @db.Date
+  status       Int       @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+  remark       String?   @db.VarChar(100)
+
+  business        Business        @relation(fields: [businessId], references: [id])
+  bank            Bank            @relation(fields: [bankId], references: [id])
+  journalCategory JournalCategory @relation(fields: [category], references: [id])
+  lines           RecurringLine[]
+
+  @@map("recurring")
+}
+
+model RecurringLine {
+  id          Int     @id @default(autoincrement())
+  mainId      Int     @map("main_id")
+  accountId   Int     @map("account_id")
+  type        Int     @db.SmallInt // 1 = Income, 2 = Expenses
+  description String? @db.VarChar(100)
+  reference   String? @db.VarChar(100)
+  assetId     Int?    @map("asset_id")
+  empId       Int?    @map("emp_id")
+  supplierId  Int?    @map("supplier_id")
+  value       Decimal @db.Decimal(18, 2)
+
+  recurring Recurring @relation(fields: [mainId], references: [id], onDelete: Cascade)
+  account   Account   @relation(fields: [accountId], references: [id])
+  asset     Asset?    @relation(fields: [assetId], references: [id])
+  employee  Employee? @relation(fields: [empId], references: [id])
+  supplier  Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@map("recurring_line")
+}

@@ -1,0 +1,66 @@
+# Root .gitignore for the Zento monorepo (be = NestJS, fe = Next.js).
+# Patterns are unanchored so they apply in both packages; each package also
+# keeps its own .gitignore for tool-specific extras.
+
+# ---- dependencies ----
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ---- build output ----
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# ---- env / secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+
+# ---- logs ----
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- test / coverage ----
+coverage/
+.nyc_output/
+
+# ---- caches ----
+.temp/
+.tmp/
+.cache/
+.eslintcache
+.turbo/
+
+# ---- diagnostics ----
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ---- deploy ----
+.vercel
+
+# ---- OS files ----
+.DS_Store
+Thumbs.db
+
+# ---- editors / IDEs ----
+.idea/
+*.swp
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

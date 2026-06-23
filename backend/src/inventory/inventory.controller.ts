@@ -1,0 +1,48 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { InventoryService } from './inventory.service';
+import { CreateInventoryDto } from './dto/create-inventory.dto';
+import { FindInventoryQueryDto } from './dto/find-inventory-query.dto';
+import { UpdateInventoryDto } from './dto/update-inventory.dto';
+
+@Controller('inventories')
+export class InventoryController {
+  constructor(private readonly inventoryService: InventoryService) {}
+
+  @Post()
+  create(@Body() createInventoryDto: CreateInventoryDto) {
+    return this.inventoryService.create(createInventoryDto);
+  }
+
+  @Get()
+  findAll(@Query() query: FindInventoryQueryDto) {
+    return this.inventoryService.findAll(query);
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.inventoryService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateInventoryDto: UpdateInventoryDto,
+  ) {
+    return this.inventoryService.update(id, updateInventoryDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.inventoryService.remove(id);
+  }
+}

@@ -1,0 +1,94 @@
+# Docker Compose for the full Zento stack (db + backend + frontend).
+#
+#   docker compose up -d --build    # build images and start everything
+#   docker compose logs -f          # follow all logs
+#   docker compose down             # stop (DB data kept in the named volume)
+#   docker compose down -v          # stop AND wipe the database volume
+#
+# Ports (published on the host): db 5432, backend 3001, frontend 3000.
+#
+# NETWORKING. Uses bridge networking with published ports so it works everywhere,
+# including Docker Desktop (which runs containers in a VM and forwards only
+# *published* ports to the host — `network_mode: host` would NOT be reachable
+# there). The frontend shares the backend's network namespace
+# (`network_mode: "service:backend"`) so a single baked
+# NEXT_PUBLIC_API_URL=http://localhost:3001 works from BOTH the browser (via the
+# published port) AND the frontend's server-side (SSR) fetches (same namespace).
+# Because the frontend shares that namespace, its :3000 is published on the
+# `backend` service, not on `frontend`.
+#
+# Stop any locally running `npm run start:dev` / `npm run dev` (and a local
+# Postgres on 5432) before `docker compose up`, or the published ports collide.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zento-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Admin@1234
+      POSTGRES_DB: zento
+    ports:
+      - "5432:5432"
+    volumes:
+      - zento-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d zento"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build: ./backend
+    container_name: zento-be
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # Publish BOTH ports here: the frontend shares this container's network
+    # namespace (see its `network_mode`), so its :3000 is exposed from here too.
+    ports:
+      - "3001:3001" # backend API
+      - "3000:3000" # frontend (served from the shared namespace)
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:3000
+      # Reach the db over the compose network by service name.
+      DATABASE_URL: postgresql://postgres:Admin%401234@db:5432/zento?schema=public
+    healthcheck:
+      # TCP probe of the listening port — robust regardless of HTTP status
+      # (the API has no health route, and `/` returns 404 once it's up).
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('net').connect(3001,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the client bundle; also used by SSR at runtime. Works for
+        # both because the frontend shares the backend's network namespace.
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+    container_name: zento-fe
+    restart: unless-stopped
+    # Share the backend's network namespace so `localhost:3001` resolves to the
+    # backend from BOTH the browser (via the published port) AND SSR fetches.
+    network_mode: "service:backend"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+
+volumes:
+  zento-db-data:

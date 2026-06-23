@@ -1,0 +1,78 @@
+# Compose for the Zento app (backend + frontend) ONLY — no Postgres container.
+# The backend talks to a Postgres you run on the HOST machine.
+#
+#   docker compose -f docker-compose-local-pg.yml up -d --build
+#   docker compose -f docker-compose-local-pg.yml logs -f
+#   docker compose -f docker-compose-local-pg.yml down
+#
+# Ports published on the host: backend 3001, frontend 3000.
+#
+# HOST POSTGRES REQUIREMENTS
+#   * A database named `zento` must already exist on the host instance
+#     (`createdb zento` / `CREATE DATABASE zento;`). The backend runs
+#     `prisma migrate deploy` on start to apply the schema, but it does NOT
+#     create the database itself.
+#   * The container reaches the host via `host.docker.internal`. On Docker
+#     Desktop this works out of the box even for a Postgres bound to 127.0.0.1.
+#     On native Linux Docker Engine, the `extra_hosts: host-gateway` line below
+#     maps the name to the host, but the host Postgres must also be listening on
+#     an address the bridge can reach (set `listen_addresses = '*'` and add a
+#     `pg_hba.conf` rule for the docker subnet) — 127.0.0.1-only won't be reachable.
+#   * Credentials/db name below match backend/.env (postgres / Admin@1234 / zento).
+#     Adjust DATABASE_URL if your host instance differs. (`@` in the password is
+#     URL-encoded as %40.)
+#
+# NETWORKING. Same model as docker-compose.yml: the frontend shares the backend's
+# network namespace so a single baked NEXT_PUBLIC_API_URL=http://localhost:3001
+# works from BOTH the browser (published port) AND SSR fetches. The frontend's
+# :3000 is therefore published on the `backend` service.
+
+services:
+  backend:
+    build: ./backend
+    container_name: zento-be
+    restart: unless-stopped
+    # Map host.docker.internal -> the host (needed on native Linux; harmless on
+    # Docker Desktop, where it is already defined).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3001:3001" # backend API
+      - "3000:3000" # frontend (served from the shared namespace)
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:3000
+      # Point at the host's locally installed Postgres.
+      DATABASE_URL: postgresql://postgres:Admin%401234@host.docker.internal:5432/zento?schema=public
+    healthcheck:
+      # TCP probe of the listening port — robust regardless of HTTP status
+      # (the API has no health route, and `/` returns 404 once it's up).
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('net').connect(3001,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the client bundle; also used by SSR at runtime. Works for
+        # both because the frontend shares the backend's network namespace.
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+    container_name: zento-fe
+    restart: unless-stopped
+    # Share the backend's network namespace so `localhost:3001` resolves to the
+    # backend from BOTH the browser (via the published port) AND SSR fetches.
+    network_mode: "service:backend"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:3001
