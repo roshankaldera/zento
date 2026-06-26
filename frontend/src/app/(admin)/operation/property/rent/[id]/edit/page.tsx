@@ -9,7 +9,10 @@ import { listAssets } from "@/lib/asset-service";
 import { listBusinesses } from "@/lib/business-service";
 import { getRent } from "@/lib/rent-service";
 import { RentForm } from "../../components/rent-form";
-import { toRentFormValues } from "../../components/rent-schema";
+import {
+  toRentFormValues,
+  type BusinessScopedOption,
+} from "../../components/rent-schema";
 import { RENT_LIST_PATH } from "../../components/constants";
 
 export const metadata: Metadata = {
@@ -32,10 +35,14 @@ export default async function EditRentPage({
     label: b.name,
     value: String(b.id),
   }));
-  const assetOptions: Option[] = assets.map((a) => ({
-    label: a.name,
-    value: String(a.id),
-  }));
+  // Rent applies to Building-type assets (type 3).
+  const assetOptions: BusinessScopedOption[] = assets
+    .filter((a) => a.type === 3)
+    .map((a) => ({
+      label: a.name,
+      value: String(a.id),
+      businessId: a.businessId,
+    }));
 
   return (
     <div>

@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteBusiness } from "@/lib/business-service"
+import { BusinessApiError, deleteBusiness } from "@/lib/business-service"
 import type { Business } from "@/types/business"
 import { getBusinessColumns } from "./business-columns"
 import { BUSINESS_NEW_PATH, businessEditPath } from "./constants"
@@ -40,8 +41,17 @@ export function BusinessListScreen({
 
   const handleDelete = React.useCallback(
     async (business: Business) => {
-      await deleteBusiness(business.id)
-      refresh()
+      try {
+        await deleteBusiness(business.id)
+        toast.success("Business deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof BusinessApiError
+            ? err.message
+            : "Failed to delete business. Please try again.",
+        )
+      }
     },
     [refresh],
   )

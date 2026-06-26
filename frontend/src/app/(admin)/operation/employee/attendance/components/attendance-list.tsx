@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteAttendance } from "@/lib/attendance-service"
+import { AttendanceApiError, deleteAttendance } from "@/lib/attendance-service"
 import type { Attendance } from "@/types/attendance"
 import { getAttendanceColumns } from "./attendance-columns"
 import { ATTENDANCE_NEW_PATH, attendanceEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function AttendanceListScreen({
 
   const handleDelete = React.useCallback(
     async (attendance: Attendance) => {
-      await deleteAttendance(attendance.id)
-      refresh()
+      try {
+        await deleteAttendance(attendance.id)
+        toast.success("Attendance deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof AttendanceApiError
+            ? err.message
+            : "Failed to delete attendance. Please try again.",
+        )
+      }
     },
     [refresh],
   )

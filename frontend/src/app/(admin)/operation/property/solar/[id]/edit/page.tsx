@@ -6,9 +6,13 @@ import React from "react";
 import type { Option } from "@/components/hook-form";
 import { Button } from "@/components/ui/button";
 import { listAssets } from "@/lib/asset-service";
+import { listBusinesses } from "@/lib/business-service";
 import { getSoloar } from "@/lib/soloar-service";
 import { SoloarForm } from "../../components/soloar-form";
-import { toSoloarFormValues } from "../../components/soloar-schema";
+import {
+  toSoloarFormValues,
+  type BusinessScopedOption,
+} from "../../components/soloar-schema";
 import { SOLOAR_LIST_PATH } from "../../components/constants";
 
 export const metadata: Metadata = {
@@ -22,13 +26,22 @@ export default async function EditSoloarPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [soloar, assets] = await Promise.all([
+  const [soloar, assets, businesses] = await Promise.all([
     Number.isFinite(Number(id)) ? getSoloar(Number(id)) : undefined,
     listAssets().catch(() => []),
+    listBusinesses().catch(() => []),
   ]);
-  const soloarOptions: Option[] = assets
+  const soloarOptions: BusinessScopedOption[] = assets
     .filter((a) => a.type === 4)
-    .map((a) => ({ label: a.name, value: String(a.id) }));
+    .map((a) => ({
+      label: a.name,
+      value: String(a.id),
+      businessId: a.businessId,
+    }));
+  const businessOptions: Option[] = businesses.map((b) => ({
+    label: b.name,
+    value: String(b.id),
+  }));
 
   return (
     <div>
@@ -39,6 +52,7 @@ export default async function EditSoloarPage({
             mode="edit"
             soloarId={soloar.id}
             defaultValues={toSoloarFormValues(soloar)}
+            businessOptions={businessOptions}
             soloarOptions={soloarOptions}
           />
         ) : (

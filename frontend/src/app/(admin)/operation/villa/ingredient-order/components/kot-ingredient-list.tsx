@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteKotIngredient } from "@/lib/kot-ingredient-service"
+import {
+  deleteKotIngredient,
+  KotIngredientApiError,
+} from "@/lib/kot-ingredient-service"
 import type { KotIngredient } from "@/types/kot-ingredient"
 import { getKotIngredientColumns } from "./kot-ingredient-columns"
 import {
@@ -34,8 +38,17 @@ export function KotIngredientListScreen({
 
   const handleDelete = React.useCallback(
     async (row: KotIngredient) => {
-      await deleteKotIngredient(row.id)
-      refresh()
+      try {
+        await deleteKotIngredient(row.id)
+        toast.success("Ingredient order deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof KotIngredientApiError
+            ? err.message
+            : "Failed to delete ingredient order. Please try again.",
+        )
+      }
     },
     [refresh],
   )

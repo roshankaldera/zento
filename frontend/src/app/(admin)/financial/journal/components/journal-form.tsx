@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -13,10 +14,10 @@ import {
   RHFDatePicker,
   RHFForm,
   RHFInput,
-  RHFNumberInput,
   RHFSelect,
   type Option,
 } from "@/components/hook-form"
+import { useAuth } from "@/context/AuthContext"
 import {
   createJournal,
   DuplicateJournalError,
@@ -88,6 +89,7 @@ export function JournalForm({
   supplierOptions,
 }: JournalFormProps) {
   const router = useRouter()
+  const { user } = useAuth()
   const isEdit = mode === "edit"
 
   const form = useForm<JournalFormValues>({
@@ -148,15 +150,24 @@ export function JournalForm({
 
   const onSubmit = React.useCallback(
     async (values: JournalFormValues) => {
-      const input = toJournalInput(values)
+      if (user == null) {
+        form.setError("root", {
+          type: "manual",
+          message: "Your session has expired. Please sign in again.",
+        })
+        return
+      }
+      const input = toJournalInput(values, user.id)
       try {
         if (isEdit && journalId != null) {
           await updateJournal(journalId, input)
+          toast.success("Journal updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(JOURNAL_NEW_PATH)
           router.refresh()
         } else {
           await createJournal(input)
+          toast.success("Journal created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()
@@ -176,7 +187,7 @@ export function JournalForm({
         form.setError("root", { type: "manual", message })
       }
     },
-    [isEdit, journalId, router, form],
+    [isEdit, journalId, router, form, user],
   )
 
   // Clear: in create mode reset to an empty form (stay); in edit mode switch
@@ -252,15 +263,6 @@ export function JournalForm({
           label="Remark"
           placeholder="Optional"
           maxLength={100}
-        />
-        {/* Disabled per business rule — stamped at save time. */}
-        <RHFNumberInput<JournalFormValues>
-          name="postBy"
-          label="Posted By"
-          //disabled
-          allowNegative={false}
-          decimalScale={0}
-          thousandSeparator=""
         />
         {/* Disabled per business rule — computed from the lines. */}
         <ReadOnlyField label="Total Value" value={formatMoney(grandTotal)} />

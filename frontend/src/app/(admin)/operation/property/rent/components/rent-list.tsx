@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteRent } from "@/lib/rent-service"
+import { deleteRent, RentApiError } from "@/lib/rent-service"
 import type { Rent } from "@/types/rent"
 import { getRentColumns } from "./rent-columns"
 import { RENT_NEW_PATH, rentEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function RentListScreen({
 
   const handleDelete = React.useCallback(
     async (rent: Rent) => {
-      await deleteRent(rent.id)
-      refresh()
+      try {
+        await deleteRent(rent.id)
+        toast.success("Rent deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof RentApiError
+            ? err.message
+            : "Failed to delete rent. Please try again.",
+        )
+      }
     },
     [refresh],
   )

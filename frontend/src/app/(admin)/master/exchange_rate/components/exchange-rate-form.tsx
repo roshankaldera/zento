@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -54,8 +55,10 @@ export function ExchangeRateForm({
       try {
         if (mode === "edit" && exchangeRateId != null) {
           await updateExchangeRate(exchangeRateId, input)
+          toast.success("Exchange rate updated.")
         } else {
           await createExchangeRate(input)
+          toast.success("Exchange rate created.")
         }
         router.push(EXCHANGE_RATE_LIST_PATH)
         router.refresh()

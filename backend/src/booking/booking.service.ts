@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -24,6 +25,12 @@ export class BookingService {
 
   async create(createBookingDto: CreateBookingDto) {
     const { fromDate, toDate, ...rest } = createBookingDto;
+    await this.assertNoRoomOverlap(
+      rest.businessId,
+      rest.roomIds,
+      new Date(fromDate),
+      new Date(toDate),
+    );
     try {
       // Number generation + create run in one transaction so the sequence is
       // only consumed if the booking commits.
@@ -80,8 +87,17 @@ export class BookingService {
   }
 
   async update(id: number, updateBookingDto: UpdateBookingDto) {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     const { fromDate, toDate, ...rest } = updateBookingDto;
+    // Validate against the effective (merged) room/date range, ignoring this
+    // record itself.
+    await this.assertNoRoomOverlap(
+      rest.businessId ?? existing.businessId,
+      rest.roomIds ?? existing.roomIds,
+      fromDate !== undefined ? new Date(fromDate) : existing.fromDate,
+      toDate !== undefined ? new Date(toDate) : existing.toDate,
+      id,
+    );
     try {
       return await this.prisma.booking.update({
         where: { id },
@@ -99,7 +115,59 @@ export class BookingService {
 
   async remove(id: number) {
     await this.findOne(id);
-    return this.prisma.booking.delete({ where: { id } });
+    try {
+      return await this.prisma.booking.delete({ where: { id } });
+    } catch (error) {
+      // FK violation: the booking still has linked KOTs.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'Cannot delete a booking that has linked KOTs. Delete the KOTs first.',
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Reject a booking that double-books a villa room. Two bookings clash when
+   * they belong to the same business, share at least one room, and their
+   * inclusive date ranges overlap (fromDate <= other.toDate AND
+   * toDate >= other.fromDate). `excludeId` skips the record being updated.
+   */
+  private async assertNoRoomOverlap(
+    businessId: number,
+    roomIds: number[],
+    fromDate: Date,
+    toDate: Date,
+    excludeId?: number,
+  ) {
+    const conflict = await this.prisma.booking.findFirst({
+      where: {
+        businessId,
+        roomIds: { hasSome: roomIds },
+        fromDate: { lte: toDate },
+        toDate: { gte: fromDate },
+        ...(excludeId !== undefined && { id: { not: excludeId } }),
+      },
+      select: { bookingNo: true, roomIds: true },
+    });
+
+    if (!conflict) return;
+
+    const clashingIds = conflict.roomIds.filter((r) => roomIds.includes(r));
+    const rooms = await this.prisma.villaRoom.findMany({
+      where: { id: { in: clashingIds } },
+      select: { name: true },
+    });
+    const roomLabel = rooms.map((r) => r.name).join(', ') || 'room';
+    const ref = conflict.bookingNo ? ` (booking ${conflict.bookingNo})` : '';
+
+    throw new ConflictException(
+      `${roomLabel} already booked for the selected dates${ref}.`,
+    );
   }
 
   private handleError(error: unknown) {

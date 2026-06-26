@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteCashTransfer } from "@/lib/cash-transfer-service"
+import {
+  CashTransferApiError,
+  deleteCashTransfer,
+} from "@/lib/cash-transfer-service"
 import type { CashTransfer } from "@/types/cash-transfer"
 import { getCashTransferColumns } from "./cash-transfer-columns"
 import {
@@ -34,8 +38,17 @@ export function CashTransferListScreen({
 
   const handleDelete = React.useCallback(
     async (row: CashTransfer) => {
-      await deleteCashTransfer(row.id)
-      refresh()
+      try {
+        await deleteCashTransfer(row.id)
+        toast.success("Cash transfer deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof CashTransferApiError
+            ? err.message
+            : "Failed to delete cash transfer. Please try again.",
+        )
+      }
     },
     [refresh],
   )

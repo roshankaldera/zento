@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteJournalCategory } from "@/lib/journal-category-service"
+import {
+  deleteJournalCategory,
+  JournalCategoryApiError,
+} from "@/lib/journal-category-service"
 import type { JournalCategory } from "@/types/journal-category"
 import { getJournalCategoryColumns } from "./journal-category-columns"
 import {
@@ -43,8 +47,17 @@ export function JournalCategoryListScreen({
 
   const handleDelete = React.useCallback(
     async (journalCategory: JournalCategory) => {
-      await deleteJournalCategory(journalCategory.id)
-      refresh()
+      try {
+        await deleteJournalCategory(journalCategory.id)
+        toast.success("Journal category deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof JournalCategoryApiError
+            ? err.message
+            : "Failed to delete journal category. Please try again.",
+        )
+      }
     },
     [refresh],
   )

@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteAccountCategory } from "@/lib/account-category-service"
+import {
+  AccountCategoryApiError,
+  deleteAccountCategory,
+} from "@/lib/account-category-service"
 import type { AccountCategory } from "@/types/account-category"
 import { getAccountCategoryColumns } from "./account-category-columns"
 import {
@@ -43,8 +47,17 @@ export function AccountCategoryListScreen({
 
   const handleDelete = React.useCallback(
     async (accountCategory: AccountCategory) => {
-      await deleteAccountCategory(accountCategory.id)
-      refresh()
+      try {
+        await deleteAccountCategory(accountCategory.id)
+        toast.success("Account category deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof AccountCategoryApiError
+            ? err.message
+            : "Failed to delete account category. Please try again.",
+        )
+      }
     },
     [refresh],
   )

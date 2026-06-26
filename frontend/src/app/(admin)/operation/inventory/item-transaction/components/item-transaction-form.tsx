@@ -9,6 +9,7 @@ import {
   useForm,
 } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -226,8 +227,10 @@ export function ItemTransactionForm({
       try {
         if (isEdit && itemTransactionId != null) {
           await updateItemTransaction(itemTransactionId, input)
+          toast.success("Item transaction updated.")
         } else {
           await createItemTransaction(input)
+          toast.success("Item transaction created.")
         }
         router.push(ITEM_TRANSACTION_LIST_PATH)
         router.refresh()
@@ -291,9 +294,11 @@ export function ItemTransactionForm({
         />
       </div>
 
+      <hr></hr>
+
       <div className="grid gap-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-foreground">Lines</h3>
+          <h3 className="text-sm font-medium text-foreground">Items</h3>
           <Button
             type="button"
             variant="outline"
@@ -358,6 +363,8 @@ export function ItemTransactionForm({
           {rootError}
         </p>
       )}
+
+      <hr></hr>
 
       <div className="flex items-center gap-3 pt-2">
         <Button type="submit" disabled={submitting}>

@@ -45,7 +45,6 @@ export const reimbursementSchema = z.object({
     .trim()
     .max(100, "Remark must be 100 characters or fewer")
     .optional(),
-  postBy: z.number({ error: "Posted By is required" }).int(),
   status: z.enum(["1", "2", "3"]),
   lines: z.array(lineSchema).min(1, "Add at least one line"),
 })
@@ -91,8 +90,6 @@ export const reimbursementFormDefaults: ReimbursementFormValues = {
   reimbursementNo: "",
   date: new Date(),
   remark: "",
-  // post_by is disabled and stamped at save time; 1 is the placeholder poster.
-  postBy: 1,
   // Server forces 2 (Finish) on create; this is a placeholder for the contract.
   status: "2",
   lines: [{ ...emptyLine }],
@@ -107,7 +104,6 @@ export function toReimbursementFormValues(
     reimbursementNo: row.reimbursementNo ?? "",
     date: parseISO(row.date.slice(0, 10)),
     remark: row.remark ?? "",
-    postBy: row.postBy,
     status: String(row.status) as ReimbursementFormValues["status"],
     lines: (row.lines ?? []).map((line) => ({
       billDate: line.billDate ? parseISO(line.billDate.slice(0, 10)) : undefined,
@@ -118,13 +114,19 @@ export function toReimbursementFormValues(
   }
 }
 
-/** Map submitted form values into the service input (strings -> numbers). */
-export function toReimbursementInput(values: ReimbursementFormValues) {
+/**
+ * Map submitted form values into the service input (strings -> numbers).
+ * `postById` is the signed-in user's id, stamped onto `postBy` at save time.
+ */
+export function toReimbursementInput(
+  values: ReimbursementFormValues,
+  postById: number,
+) {
   return {
     businessId: Number(values.businessId),
     date: format(values.date, "yyyy-MM-dd"),
     remark: values.remark?.trim() ? values.remark.trim() : null,
-    postBy: values.postBy,
+    postBy: postById,
     status: Number(values.status) as ReimbursementStatus,
     lines: values.lines.map((line) => ({
       billDate: line.billDate ? format(line.billDate, "yyyy-MM-dd") : null,

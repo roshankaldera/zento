@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -133,8 +134,10 @@ export function BudgetForm({
       try {
         if (isEdit && budgetId != null) {
           await updateBudget(budgetId, input)
+          toast.success("Budget updated.")
         } else {
           await createBudget(input)
+          toast.success("Budget created.")
         }
         router.push(BUDGET_LIST_PATH)
         router.refresh()

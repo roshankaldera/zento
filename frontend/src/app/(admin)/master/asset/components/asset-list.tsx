@@ -2,20 +2,23 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteAsset } from "@/lib/asset-service"
+import { AssetApiError, deleteAsset } from "@/lib/asset-service"
 import type { Asset } from "@/types/asset"
 import { getAssetColumns } from "./asset-columns"
 import { ASSET_NEW_PATH, assetEditPath } from "./constants"
 
 interface AssetListScreenProps {
   initialAssets: Asset[]
+  businessNameById: Record<number, string>
   error?: string | null
 }
 
 export function AssetListScreen({
   initialAssets,
+  businessNameById,
   error = null,
 }: AssetListScreenProps) {
   const router = useRouter()
@@ -31,8 +34,17 @@ export function AssetListScreen({
 
   const handleDelete = React.useCallback(
     async (asset: Asset) => {
-      await deleteAsset(asset.id)
-      refresh()
+      try {
+        await deleteAsset(asset.id)
+        toast.success("Asset deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof AssetApiError
+            ? err.message
+            : "Failed to delete asset. Please try again.",
+        )
+      }
     },
     [refresh],
   )
@@ -40,10 +52,11 @@ export function AssetListScreen({
   const columns = React.useMemo(
     () =>
       getAssetColumns({
+        businessNameById,
         onEdit: (asset) => router.push(assetEditPath(asset.id)),
         onDelete: handleDelete,
       }),
-    [router, handleDelete],
+    [router, handleDelete, businessNameById],
   )
 
   return (

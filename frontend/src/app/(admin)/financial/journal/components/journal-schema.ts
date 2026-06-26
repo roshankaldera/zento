@@ -53,7 +53,6 @@ export const journalSchema = z.object({
     .trim()
     .max(100, "Remark must be 100 characters or fewer")
     .optional(),
-  postBy: z.number({ error: "Posted By is required" }).int(),
   status: z.enum(["1", "2", "3"]),
   lines: z.array(lineSchema).min(1, "Add at least one line"),
 })
@@ -111,8 +110,6 @@ export const journalFormDefaults: JournalFormValues = {
   category: "",
   date: new Date(),
   remark: "",
-  // post_by is disabled and stamped at save time; 1 is the placeholder poster.
-  postBy: 1,
   // Server forces 2 (Finish) on create; this is a placeholder for the contract.
   status: "2",
   lines: [{ ...emptyLine }],
@@ -130,7 +127,6 @@ export function toJournalFormValues(row: Journal): JournalFormValues {
     category: String(row.category),
     date: parseISO(row.date.slice(0, 10)),
     remark: row.remark ?? "",
-    postBy: row.postBy,
     status: String(row.status) as JournalFormValues["status"],
     lines: (row.lines ?? []).map((line) => ({
       accountId: String(line.accountId),
@@ -148,15 +144,18 @@ export function toJournalFormValues(row: Journal): JournalFormValues {
 /** Optional FK form string -> number | null. */
 const strToId = (v: string | undefined) => (v && v.trim() ? Number(v) : null)
 
-/** Map submitted form values into the service input (strings -> numbers). */
-export function toJournalInput(values: JournalFormValues) {
+/**
+ * Map submitted form values into the service input (strings -> numbers).
+ * `postById` is the signed-in user's id, stamped onto `postBy` at save time.
+ */
+export function toJournalInput(values: JournalFormValues, postById: number) {
   return {
     businessId: Number(values.businessId),
     bankId: Number(values.bankId),
     category: Number(values.category),
     date: format(values.date, "yyyy-MM-dd"),
     remark: values.remark?.trim() ? values.remark.trim() : null,
-    postBy: values.postBy,
+    postBy: postById,
     status: Number(values.status) as JournalStatus,
     lines: values.lines.map((line) => ({
       accountId: Number(line.accountId),

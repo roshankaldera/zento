@@ -4,7 +4,9 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   RHFCurrencyInput,
@@ -16,7 +18,11 @@ import {
   RHFSelect,
   type Option,
 } from "@/components/hook-form"
-import { createBooking, updateBooking } from "@/lib/booking-service"
+import {
+  BookingApiError,
+  createBooking,
+  updateBooking,
+} from "@/lib/booking-service"
 import {
   bookingFormDefaults,
   bookingSchema,
@@ -29,7 +35,7 @@ import {
   toBookingInput,
   type BookingFormValues,
 } from "./booking-schema"
-import { BOOKING_LIST_PATH, BOOKING_NEW_PATH } from "./constants"
+import { BOOKING_LIST_PATH, BOOKING_NEW_PATH, BOOKING_CALENDAR_PATH } from "./constants"
 
 /** Fresh empty form values for create mode. */
 const freshDefaults = (): BookingFormValues => ({ ...bookingFormDefaults })
@@ -53,9 +59,17 @@ interface BookingFormProps {
 }
 
 /** A disabled-looking, read-only value box. */
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
+function ReadOnlyField({
+  label,
+  value,
+  className,
+}: {
+  label: string
+  value: string
+  className?: string
+}) {
   return (
-    <div className="grid gap-2">
+    <div className={cn("grid gap-2", className)}>
       <span className="text-sm font-medium text-foreground">{label}</span>
       <div className="flex h-10 items-center rounded-lg border border-input bg-muted/50 px-3 text-sm text-muted-foreground">
         {value}
@@ -106,11 +120,23 @@ export function BookingForm({
     if (isLkr) form.setValue("exRate", 1, { shouldValidate: false })
   }, [isLkr, form])
 
+  // Booking No is display-only (assigned server-side). It is read via watch and
+  // shown in a read-only box — binding it to a *disabled* RHF control would make
+  // RHF report its value as `undefined`, blanking the field on edit.
+  const bookingNo = useWatch({
+    control: form.control,
+    name: "bookingNo",
+    defaultValue: defaultValues.bookingNo,
+  })
+
   // The Rooms multi-select is scoped to the selected business. Filtering is
-  // done client-side off the pre-fetched, business-tagged room list.
+  // done client-side off the pre-fetched, business-tagged room list. An explicit
+  // `defaultValue` keeps the first render from seeing `undefined` — otherwise the
+  // Rooms field would momentarily disable and RHF would wipe the loaded roomIds.
   const selectedBusinessId = useWatch({
     control: form.control,
     name: "businessId",
+    defaultValue: defaultValues.businessId,
   })
   const filteredRoomOptions = React.useMemo(
     () =>
@@ -140,20 +166,24 @@ export function BookingForm({
       try {
         if (isEdit && bookingId != null) {
           await updateBooking(bookingId, input)
+          toast.success("Booking updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(BOOKING_NEW_PATH)
           router.refresh()
         } else {
           await createBooking(input)
+          toast.success("Booking created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()
         }
-      } catch {
-        form.setError("root", {
-          type: "manual",
-          message: "Something went wrong. Please try again.",
-        })
+      } catch (error) {
+        // Surface the room-overlap conflict (409) verbatim; fall back otherwise.
+        const message =
+          error instanceof BookingApiError && error.status === 409
+            ? error.message
+            : "Something went wrong. Please try again."
+        form.setError("root", { type: "manual", message })
       }
     },
     [isEdit, bookingId, router, form],
@@ -185,12 +215,9 @@ export function BookingForm({
       onSubmit={onSubmit}
       className="grid max-w-3xl gap-5 sm:grid-cols-2"
     >
-      <RHFInput<BookingFormValues>
-        name="bookingNo"
+      <ReadOnlyField
         label="Booking No"
-        disabled
-        placeholder="Auto-generated on save"
-        maxLength={15}
+        value={bookingNo || "Auto-generated on save"}
         className="sm:col-span-2"
       />
       <RHFSelect<BookingFormValues>
@@ -333,6 +360,14 @@ export function BookingForm({
           onClick={() => router.push(BOOKING_LIST_PATH)}
         >
           List
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={submitting}
+          onClick={() => router.push(BOOKING_CALENDAR_PATH)}
+        >
+          Calendar
         </Button>
       </div>
     </RHFForm>

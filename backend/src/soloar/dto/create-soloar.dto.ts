@@ -11,6 +11,11 @@ export class CreateSoloarDto {
   @IsNotEmpty()
   @Type(() => Number)
   @IsInt()
+  businessId: number;
+
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt()
   soloarId: number;
 
   @IsNotEmpty()

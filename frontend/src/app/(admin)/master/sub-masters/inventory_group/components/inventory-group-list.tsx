@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteInventoryGroup } from "@/lib/inventory-group-service"
+import {
+  deleteInventoryGroup,
+  InventoryGroupApiError,
+} from "@/lib/inventory-group-service"
 import type { InventoryGroup } from "@/types/inventory-group"
 import { getInventoryGroupColumns } from "./inventory-group-columns"
 import {
@@ -43,8 +47,17 @@ export function InventoryGroupListScreen({
 
   const handleDelete = React.useCallback(
     async (inventoryGroup: InventoryGroup) => {
-      await deleteInventoryGroup(inventoryGroup.id)
-      refresh()
+      try {
+        await deleteInventoryGroup(inventoryGroup.id)
+        toast.success("Inventory group deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof InventoryGroupApiError
+            ? err.message
+            : "Failed to delete inventory group. Please try again.",
+        )
+      }
     },
     [refresh],
   )

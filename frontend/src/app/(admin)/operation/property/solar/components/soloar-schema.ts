@@ -1,7 +1,16 @@
 import { format, parseISO } from "date-fns"
 import { z } from "zod"
 
+import type { Option } from "@/components/hook-form"
 import type { Soloar } from "@/types/soloar"
+
+/**
+ * A solar-asset option that also carries its owning `businessId`, so the form
+ * can filter the list down to the selected business client-side.
+ */
+export interface BusinessScopedOption extends Option {
+  businessId: number
+}
 
 /**
  * Soloar form contract. `soloarId` (the referenced solar asset) is committed as
@@ -9,6 +18,7 @@ import type { Soloar } from "@/types/soloar"
  * real number. Mapped back at the submit boundary (see `toSoloarInput`).
  */
 export const soloarSchema = z.object({
+  businessId: z.string().min(1, "Business is required"),
   soloarId: z.string().min(1, "Soloar is required"),
   date: z.date({ error: "Date is required" }),
   meterReading: z
@@ -27,6 +37,7 @@ export const formatReading = (value: number | string): string =>
 
 /** Default values for the create form. */
 export const soloarFormDefaults: SoloarFormValues = {
+  businessId: "",
   soloarId: "",
   // Validation enforces a real date on submit; the picker handles `undefined`.
   date: undefined as unknown as Date,
@@ -36,6 +47,7 @@ export const soloarFormDefaults: SoloarFormValues = {
 /** Map a loaded record into form values (numbers -> strings, ISO -> Date). */
 export function toSoloarFormValues(soloar: Soloar): SoloarFormValues {
   return {
+    businessId: soloar.businessId != null ? String(soloar.businessId) : "",
     soloarId: String(soloar.soloarId),
     date: parseISO(soloar.date.slice(0, 10)),
     meterReading: Number(soloar.meterReading),
@@ -45,6 +57,7 @@ export function toSoloarFormValues(soloar: Soloar): SoloarFormValues {
 /** Map submitted form values into the service input (strings -> numbers). */
 export function toSoloarInput(values: SoloarFormValues) {
   return {
+    businessId: Number(values.businessId),
     soloarId: Number(values.soloarId),
     date: format(values.date, "yyyy-MM-dd"),
     meterReading: values.meterReading,

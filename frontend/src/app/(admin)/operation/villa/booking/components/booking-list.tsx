@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteBooking } from "@/lib/booking-service"
+import { BookingApiError, deleteBooking } from "@/lib/booking-service"
 import type { Booking } from "@/types/booking"
 import { getBookingColumns } from "./booking-columns"
 import { BOOKING_NEW_PATH, bookingEditPath } from "./constants"
@@ -31,8 +32,18 @@ export function BookingListScreen({
 
   const handleDelete = React.useCallback(
     async (booking: Booking) => {
-      await deleteBooking(booking.id)
-      refresh()
+      try {
+        await deleteBooking(booking.id)
+        toast.success("Booking deleted.")
+        refresh()
+      } catch (err) {
+        // A booking with linked KOTs can't be deleted — surface the reason.
+        toast.error(
+          err instanceof BookingApiError
+            ? err.message
+            : "Failed to delete booking. Please try again.",
+        )
+      }
     },
     [refresh],
   )

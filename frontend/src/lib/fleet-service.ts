@@ -47,6 +47,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 function toPayload(input: CreateFleetInput | UpdateFleetInput) {
   return {
+    businessId: input.businessId,
+    assetId: input.assetId,
     vehicleNo: input.vehicleNo.trim(),
     licenseDate: input.licenseDate.trim(),
     insuranceDate: input.insuranceDate.trim(),

@@ -3,10 +3,16 @@ import { Metadata } from "next";
 import Link from "next/link";
 import React from "react";
 
+import type { Option } from "@/components/hook-form";
 import { Button } from "@/components/ui/button";
+import { listAssets } from "@/lib/asset-service";
+import { listBusinesses } from "@/lib/business-service";
 import { getFleet } from "@/lib/fleet-service";
 import { FleetForm } from "../../components/fleet-form";
-import { toFleetFormValues } from "../../components/fleet-schema";
+import {
+  toFleetFormValues,
+  type BusinessScopedOption,
+} from "../../components/fleet-schema";
 import { FLEET_LIST_PATH } from "../../components/constants";
 
 export const metadata: Metadata = {
@@ -20,9 +26,22 @@ export default async function EditFleetPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const fleet = Number.isFinite(Number(id))
-    ? await getFleet(Number(id))
-    : undefined;
+  const [fleet, businesses, assets] = await Promise.all([
+    Number.isFinite(Number(id)) ? getFleet(Number(id)) : undefined,
+    listBusinesses().catch(() => []),
+    listAssets().catch(() => []),
+  ]);
+  const businessOptions: Option[] = businesses.map((b) => ({
+    label: b.name,
+    value: String(b.id),
+  }));
+  const assetOptions: BusinessScopedOption[] = assets
+    .filter((a) => a.type === 2)
+    .map((a) => ({
+      label: a.name,
+      value: String(a.id),
+      businessId: a.businessId,
+    }));
 
   return (
     <div>
@@ -33,6 +52,8 @@ export default async function EditFleetPage({
             mode="edit"
             fleetId={fleet.id}
             defaultValues={toFleetFormValues(fleet)}
+            businessOptions={businessOptions}
+            assetOptions={assetOptions}
           />
         ) : (
           <div className="flex flex-col items-start gap-3">

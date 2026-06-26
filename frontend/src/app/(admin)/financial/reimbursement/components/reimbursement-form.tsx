@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -12,10 +13,10 @@ import {
   RHFDatePicker,
   RHFForm,
   RHFInput,
-  RHFNumberInput,
   RHFSelect,
   type Option,
 } from "@/components/hook-form"
+import { useAuth } from "@/context/AuthContext"
 import {
   createReimbursement,
   DuplicateReimbursementError,
@@ -74,6 +75,7 @@ export function ReimbursementForm({
   businessOptions,
 }: ReimbursementFormProps) {
   const router = useRouter()
+  const { user } = useAuth()
   const isEdit = mode === "edit"
 
   const form = useForm<ReimbursementFormValues>({
@@ -92,15 +94,24 @@ export function ReimbursementForm({
 
   const onSubmit = React.useCallback(
     async (values: ReimbursementFormValues) => {
-      const input = toReimbursementInput(values)
+      if (user == null) {
+        form.setError("root", {
+          type: "manual",
+          message: "Your session has expired. Please sign in again.",
+        })
+        return
+      }
+      const input = toReimbursementInput(values, user.id)
       try {
         if (isEdit && reimbursementId != null) {
           await updateReimbursement(reimbursementId, input)
+          toast.success("Reimbursement updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(REIMBURSEMENT_NEW_PATH)
           router.refresh()
         } else {
           await createReimbursement(input)
+          toast.success("Reimbursement created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()
@@ -119,7 +130,7 @@ export function ReimbursementForm({
         })
       }
     },
-    [isEdit, reimbursementId, router, form],
+    [isEdit, reimbursementId, router, form, user],
   )
 
   // Clear: in create mode reset to an empty form (stay); in edit mode switch
@@ -174,15 +185,6 @@ export function ReimbursementForm({
           label="Remark"
           placeholder="Optional"
           maxLength={100}
-        />
-        {/* Disabled per business rule — stamped at save time. */}
-        <RHFNumberInput<ReimbursementFormValues>
-          name="postBy"
-          label="Posted By"
-          //disabled
-          allowNegative={false}
-          decimalScale={0}
-          thousandSeparator=""
         />
         {/* Disabled per business rule — computed from the lines. */}
         <ReadOnlyField label="Total Value" value={formatMoney(grandTotal)} />

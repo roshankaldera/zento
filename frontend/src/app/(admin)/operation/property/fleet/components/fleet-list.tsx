@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteFleet } from "@/lib/fleet-service"
+import { deleteFleet, FleetApiError } from "@/lib/fleet-service"
 import type { Fleet } from "@/types/fleet"
 import { getFleetColumns } from "./fleet-columns"
 import { FLEET_NEW_PATH, fleetEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function FleetListScreen({
 
   const handleDelete = React.useCallback(
     async (fleet: Fleet) => {
-      await deleteFleet(fleet.id)
-      refresh()
+      try {
+        await deleteFleet(fleet.id)
+        toast.success("Fleet deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof FleetApiError
+            ? err.message
+            : "Failed to delete fleet. Please try again.",
+        )
+      }
     },
     [refresh],
   )

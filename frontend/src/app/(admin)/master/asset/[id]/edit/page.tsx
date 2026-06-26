@@ -5,6 +5,7 @@ import React from "react";
 
 import { Button } from "@/components/ui/button";
 import { getAsset } from "@/lib/asset-service";
+import { listBusinesses } from "@/lib/business-service";
 import { AssetForm } from "../../components/asset-form";
 import { toAssetFormValues } from "../../components/asset-schema";
 import { ASSET_LIST_PATH } from "../../components/constants";
@@ -23,6 +24,11 @@ export default async function EditAssetPage({
   const asset = Number.isFinite(Number(id))
     ? await getAsset(Number(id))
     : undefined;
+  const businesses = await listBusinesses().catch(() => []);
+  const businessOptions = businesses.map((b) => ({
+    label: b.name,
+    value: String(b.id),
+  }));
 
   return (
     <div>
@@ -33,6 +39,7 @@ export default async function EditAssetPage({
             mode="edit"
             assetId={asset.id}
             defaultValues={toAssetFormValues(asset)}
+            businessOptions={businessOptions}
           />
         ) : (
           <div className="flex flex-col items-start gap-3">

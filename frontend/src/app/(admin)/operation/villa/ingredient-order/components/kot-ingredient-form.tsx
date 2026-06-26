@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useFieldArray, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -79,11 +80,13 @@ export function KotIngredientForm({
       try {
         if (isEdit && kotIngredientId != null) {
           await updateKotIngredient(kotIngredientId, input)
+          toast.success("Ingredient order updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(KOT_INGREDIENT_NEW_PATH)
           router.refresh()
         } else {
           await createKotIngredient(input)
+          toast.success("Ingredient order created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()
@@ -147,6 +150,8 @@ export function KotIngredientForm({
         />
       </div>
 
+      <hr></hr>
+
       <div className="grid gap-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-foreground">Lines</h3>
@@ -155,7 +160,7 @@ export function KotIngredientForm({
             variant="outline"
             onClick={() => append({ ...emptyKotIngredientLine })}
           >
-            Add line
+            Ingredients
           </Button>
         </div>
 
@@ -242,6 +247,8 @@ export function KotIngredientForm({
           {rootError}
         </p>
       )}
+
+      <hr></hr>
 
       <div className="flex items-center gap-3 pt-2">
         <Button type="submit" disabled={submitting}>

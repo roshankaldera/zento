@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteItemTransaction } from "@/lib/item-transaction-service"
+import { deleteItemTransaction, ItemTransactionApiError } from "@/lib/item-transaction-service"
 import type { ItemTransaction } from "@/types/item-transaction"
 import { getItemTransactionColumns } from "./item-transaction-columns"
 import {
@@ -34,8 +35,17 @@ export function ItemTransactionListScreen({
 
   const handleDelete = React.useCallback(
     async (row: ItemTransaction) => {
-      await deleteItemTransaction(row.id)
-      refresh()
+      try {
+        await deleteItemTransaction(row.id)
+        toast.success("Item transaction deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof ItemTransactionApiError
+            ? err.message
+            : "Failed to delete item transaction. Please try again.",
+        )
+      }
     },
     [refresh],
   )

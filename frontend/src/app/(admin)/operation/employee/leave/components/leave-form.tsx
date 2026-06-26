@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -60,11 +61,13 @@ export function LeaveForm({
       try {
         if (isEdit && leaveId != null) {
           await updateLeave(leaveId, input)
+          toast.success("Leave updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(LEAVE_NEW_PATH)
           router.refresh()
         } else {
           await createLeave(input)
+          toast.success("Leave created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()

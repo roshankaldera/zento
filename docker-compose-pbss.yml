@@ -1,0 +1,79 @@
+# Compose for the Zento app (backend + frontend) on the PBSS environment.
+# No Postgres container — the backend talks to a Postgres on the HOST machine.
+#
+#   docker compose -f docker-compose-pbss.yml up -d --build
+#   docker compose -f docker-compose-pbss.yml logs -f
+#   docker compose -f docker-compose-pbss.yml down
+#
+# NETWORK
+#   Attaches to the EXISTING external network `roshan_network`. Create it first
+#   if it does not exist, e.g.:
+#       docker network create roshan_network
+#   Each service gets a static IP on that network:
+#       frontend -> 172.16.200.113   (host port 50113 -> container 3000)
+#       backend  -> 172.16.200.114   (host port 50114 -> container 3001)
+#
+#   Unlike docker-compose-local-pg.yml, the frontend does NOT share the backend's
+#   network namespace (each has its own static IP), so NEXT_PUBLIC_API_URL is
+#   baked as http://172.16.200.114:3001 — the backend's static IP — which works
+#   for browsers on the same network AND for SSR fetches.
+#
+# POSTGRES
+#   * The backend connects to Postgres at 172.16.100.20:5432.
+#   * A database named `zento` must already exist on that instance.
+#   * Credentials/db name below match backend/.env (postgres / Admin@1234 / zento).
+#     `@` in the password is URL-encoded as %40.
+
+services:
+  backend:
+    build: ./backend
+    container_name: zento-be
+    restart: unless-stopped
+    ports:
+      - "50114:3001" # backend API
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      FRONTEND_URL: http://172.16.200.113:3000
+      # Point at the Postgres instance on the network.
+      DATABASE_URL: postgresql://postgres:Admin%401234@172.16.100.20:5432/zento?schema=public
+    networks:
+      roshan_network:
+        ipv4_address: 172.16.200.114
+    healthcheck:
+      # TCP probe of the listening port — robust regardless of HTTP status
+      # (the API has no health route, and `/` returns 404 once it's up).
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('net').connect(3001,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the client bundle; also used by SSR at runtime. Points at the
+        # backend's static IP on roshan_network.
+        NEXT_PUBLIC_API_URL: http://172.16.200.114:3001
+    container_name: zento-fe
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "50113:3000" # frontend
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://172.16.200.114:3001
+    networks:
+      roshan_network:
+        ipv4_address: 172.16.200.113
+
+networks:
+  roshan_network:
+    external: true

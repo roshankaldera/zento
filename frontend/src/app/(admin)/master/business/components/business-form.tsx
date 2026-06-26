@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -99,8 +100,10 @@ export function BusinessForm({
       try {
         if (mode === "edit" && businessId != null) {
           await updateBusiness(businessId, input)
+          toast.success("Business updated.")
         } else {
           await createBusiness(input)
+          toast.success("Business created.")
         }
         router.push(BUSINESS_LIST_PATH)
         router.refresh()

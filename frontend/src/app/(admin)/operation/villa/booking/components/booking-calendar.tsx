@@ -12,7 +12,11 @@ import { listBookings } from "@/lib/booking-service"
 import { getBusiness } from "@/lib/business-service"
 import type { Booking, BookingStatus } from "@/types/booking"
 import type { BusinessLine } from "@/types/business"
-import { BOOKING_LIST_PATH, BOOKING_NEW_PATH } from "./constants"
+import {
+  BOOKING_LIST_PATH,
+  BOOKING_NEW_PATH,
+  bookingEditPath,
+} from "./constants"
 
 /** Selectable years for the calendar. */
 const YEAR_OPTIONS: Option[] = ["2026", "2027", "2028", "2029", "2030"].map(
@@ -50,6 +54,10 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   2: "Confirmed",
   3: "Management",
 }
+
+/** Ash fill for a vacant (unbooked) room cell. */
+const VACANT_CLASS =
+  "bg-gray-200 text-gray-500 dark:bg-gray-700/60 dark:text-gray-400"
 
 const filterSchema = z.object({
   businessId: z.string().min(1, "Business is required"),
@@ -186,6 +194,7 @@ export function BookingCalendar({ businessOptions }: BookingCalendarProps) {
 
 /** The month grid: one row per day, one column per room. */
 function CalendarTable({ data }: { data: CalendarData }) {
+  const router = useRouter()
   const { year, month, rooms, bookings } = data
 
   // Number of days in the selected month (day 0 of next month = last of this).
@@ -255,14 +264,23 @@ function CalendarTable({ data }: { data: CalendarData }) {
                     return (
                       <td key={room.id} className="px-1 py-1">
                         {booking ? (
-                          <div
-                            className={`flex h-8 items-center truncate rounded px-2 text-xs font-medium ${STATUS_CLASS[booking.status]}`}
-                            title={`${booking.customer} — ${STATUS_LABEL[booking.status]}`}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              router.push(bookingEditPath(booking.id))
+                            }
+                            className={`flex h-10 w-full items-center truncate rounded px-2 text-left text-xs font-medium transition hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${STATUS_CLASS[booking.status]}`}
+                            title={`${booking.customer} — ${STATUS_LABEL[booking.status]} (click to edit)`}
                           >
-                            {booking.customer}
-                          </div>
+                            {booking.bookingNo} {" - "} {booking.customer}
+                          </button>
                         ) : (
-                          <div className="h-8" />
+                          <div
+                            className={`flex h-10 items-center truncate rounded px-2 text-xs font-medium ${VACANT_CLASS}`}
+                            title="Vacant"
+                          >
+                            Vacant
+                          </div>
                         )}
                       </td>
                     )
@@ -287,6 +305,10 @@ function Legend() {
           {STATUS_LABEL[status]}
         </span>
       ))}
+      <span className="flex items-center gap-2">
+        <span className={`inline-block h-4 w-4 rounded ${VACANT_CLASS}`} />
+        Vacant
+      </span>
     </div>
   )
 }

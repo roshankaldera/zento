@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -12,10 +13,10 @@ import {
   RHFDatePicker,
   RHFForm,
   RHFInput,
-  RHFNumberInput,
   RHFSelect,
   type Option,
 } from "@/components/hook-form"
+import { useAuth } from "@/context/AuthContext"
 import {
   CashTransferApiError,
   createCashTransfer,
@@ -56,6 +57,7 @@ export function CashTransferForm({
   bankOptions,
 }: CashTransferFormProps) {
   const router = useRouter()
+  const { user } = useAuth()
   const isEdit = mode === "edit"
 
   const form = useForm<CashTransferFormValues>({
@@ -66,15 +68,24 @@ export function CashTransferForm({
 
   const onSubmit = React.useCallback(
     async (values: CashTransferFormValues) => {
-      const input = toCashTransferInput(values)
+      if (user == null) {
+        form.setError("root", {
+          type: "manual",
+          message: "Your session has expired. Please sign in again.",
+        })
+        return
+      }
+      const input = toCashTransferInput(values, user.id)
       try {
         if (isEdit && cashTransferId != null) {
           await updateCashTransfer(cashTransferId, input)
+          toast.success("Cash transfer updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(CASH_TRANSFER_NEW_PATH)
           router.refresh()
         } else {
           await createCashTransfer(input)
+          toast.success("Cash transfer created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()
@@ -96,7 +107,7 @@ export function CashTransferForm({
         })
       }
     },
-    [isEdit, cashTransferId, router, form],
+    [isEdit, cashTransferId, router, form, user],
   )
 
   // Clear: in create mode reset to an empty form (stay); in edit mode switch
@@ -168,14 +179,6 @@ export function CashTransferForm({
         label="Reference"
         placeholder="Optional"
         maxLength={100}
-      />
-      <RHFNumberInput<CashTransferFormValues>
-        name="postBy"
-        label="Posted By"
-        required
-        allowNegative={false}
-        decimalScale={0}
-        placeholder="User id"
       />
       <RHFInput<CashTransferFormValues>
         name="description"

@@ -24,6 +24,8 @@ model Crop {
   remark String? @db.VarChar(50)
   status Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
 
+  otherHarvests OtherHarvest[]
+
   @@map("crop")
 }
 
@@ -52,23 +54,31 @@ model JournalCategory {
 
 model Fleet {
   id            Int    @id @default(autoincrement())
+  businessId    Int    @map("business_id")
+  assetId       Int    @map("asset_id")
   vehicleNo     String @map("vehicle_no") @db.VarChar(10)
   licenseDate   String @map("license_date") @db.VarChar(5) // mm/dd
   insuranceDate String @map("insurance_date") @db.VarChar(5) // mm/dd
   status        Int    @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
 
+  business Business @relation(fields: [businessId], references: [id])
+  asset    Asset    @relation(fields: [assetId], references: [id])
+
   @@map("fleet")
 }
 
 model Asset {
-  id     Int     @id @default(autoincrement())
-  name   String  @unique @db.VarChar(100)
-  type   Int     @db.SmallInt // 1 = Investment, 2 = Vehicle, 3 = Building, 4 = Solar
-  status Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
-  remark String? @db.VarChar(100)
+  id         Int     @id @default(autoincrement())
+  businessId Int     @map("business_id")
+  name       String  @unique @db.VarChar(100)
+  type       Int     @db.SmallInt // 1 = Investment, 2 = Vehicle, 3 = Building, 4 = Solar
+  status     Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
+  remark     String? @db.VarChar(100)
 
+  business       Business        @relation(fields: [businessId], references: [id])
   rents          Rent[]
   soloars        Soloar[]
+  fleets         Fleet[]
   journalLines   JournalLine[]
   recurringLines RecurringLine[]
 
@@ -127,11 +137,13 @@ model User {
 
 model Soloar {
   id           Int      @id @default(autoincrement())
+  businessId   Int      @map("business_id")
   soloarId     Int      @map("soloar_id")
   date         DateTime @db.Date
   meterReading Decimal  @map("meter_reading") @db.Decimal(18, 2)
 
-  asset Asset @relation(fields: [soloarId], references: [id])
+  business Business @relation(fields: [businessId], references: [id])
+  asset    Asset    @relation(fields: [soloarId], references: [id])
 
   @@map("soloar")
 }
@@ -167,6 +179,7 @@ model Supplier {
 
   journalLines   JournalLine[]
   recurringLines RecurringLine[]
+  otherHarvests  OtherHarvest[]
 
   @@map("supplier")
 }
@@ -205,23 +218,28 @@ model Business {
   remark        String? @db.VarChar(100)
   status        Int     @default(1) @db.SmallInt // 1 = Active, 2 = Inactive
 
-  accounts         Account[]
-  employees        Employee[]
-  banks            Bank[]
-  attendances      Attendance[]
-  bookings         Booking[]
-  kots             Kot[]
-  estateDivisions  EstateDivision[]
-  villaRooms       VillaRoom[]
-  coconutHarvests  CoconutHarvest[]
-  latexHarvests    LatexHarvest[]
-  rents            Rent[]
-  inventoryStocks  InventoryStock[]
-  itemTransactions ItemTransaction[]
-  budgets          Budget[]
-  reimbursements   Reimbursement[]
-  journals         Journal[]
-  recurrings       Recurring[]
+  accounts          Account[]
+  assets            Asset[]
+  soloars           Soloar[]
+  fleets            Fleet[]
+  employees         Employee[]
+  banks             Bank[]
+  attendances       Attendance[]
+  bookings          Booking[]
+  kots              Kot[]
+  estateDivisions   EstateDivision[]
+  villaRooms        VillaRoom[]
+  coconutHarvests   CoconutHarvest[]
+  latexHarvests     LatexHarvest[]
+  rents             Rent[]
+  inventoryStocks   InventoryStock[]
+  itemTransactions  ItemTransaction[]
+  budgets           Budget[]
+  reimbursements    Reimbursement[]
+  journals          Journal[]
+  recurrings        Recurring[]
+  bookingPriceLists BookingPriceList[]
+  otherHarvests     OtherHarvest[]
 
   @@map("business")
 }
@@ -693,4 +711,49 @@ model RecurringLine {
   supplier  Supplier? @relation(fields: [supplierId], references: [id])
 
   @@map("recurring_line")
+}
+
+model BookingPriceList {
+  id         Int      @id @default(autoincrement())
+  businessId Int      @map("business_id")
+  fromDate   DateTime @map("from_date") @db.Date
+  toDate     DateTime @map("to_date") @db.Date
+  remark     String?  @db.VarChar(100)
+
+  business Business           @relation(fields: [businessId], references: [id])
+  lines    BookingPriceLine[]
+
+  @@map("booking_price_list")
+}
+
+model BookingPriceLine {
+  id          Int     @id @default(autoincrement())
+  mainId      Int     @map("main_id")
+  roomId      Int     @map("room_id")
+  otaPrice    Decimal @default(0) @map("ota_price") @db.Decimal(18, 2)
+  directPrice Decimal @default(0) @map("direct_price") @db.Decimal(18, 2)
+  dmcPrice    Decimal @default(0) @map("dmc_price") @db.Decimal(18, 2)
+  localPrice  Decimal @default(0) @map("local_price") @db.Decimal(18, 2)
+
+  main BookingPriceList @relation(fields: [mainId], references: [id], onDelete: Cascade)
+
+  @@map("booking_price_line")
+}
+
+model OtherHarvest {
+  id         Int      @id @default(autoincrement())
+  estateId   Int      @map("estate_id")
+  supplierId Int      @map("supplier_id")
+  cropId     Int      @map("crop_id")
+  date       DateTime @db.Date
+  quantity   Decimal  @db.Decimal(18, 2)
+  value      Decimal  @db.Decimal(18, 2)
+  reference  String?  @db.VarChar(100)
+  remark     String?  @db.VarChar(100)
+
+  estate   Business @relation(fields: [estateId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  crop     Crop     @relation(fields: [cropId], references: [id])
+
+  @@map("other_harvest")
 }

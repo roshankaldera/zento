@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteCoconutHarvest } from "@/lib/coconut-harvest-service"
+import { CoconutHarvestApiError, deleteCoconutHarvest } from "@/lib/coconut-harvest-service"
 import type { CoconutHarvest } from "@/types/coconut-harvest"
 import { getCoconutHarvestColumns } from "./coconut-harvest-columns"
 import {
@@ -34,8 +35,17 @@ export function CoconutHarvestListScreen({
 
   const handleDelete = React.useCallback(
     async (row: CoconutHarvest) => {
-      await deleteCoconutHarvest(row.id)
-      refresh()
+      try {
+        await deleteCoconutHarvest(row.id)
+        toast.success("Coconut harvest deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof CoconutHarvestApiError
+            ? err.message
+            : "Failed to delete coconut harvest. Please try again.",
+        )
+      }
     },
     [refresh],
   )

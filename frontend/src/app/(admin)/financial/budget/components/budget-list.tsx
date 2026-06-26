@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteBudget } from "@/lib/budget-service"
+import { BudgetApiError, deleteBudget } from "@/lib/budget-service"
 import type { Budget } from "@/types/budget"
 import { getBudgetColumns } from "./budget-columns"
 import { BUDGET_NEW_PATH, budgetEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function BudgetListScreen({
 
   const handleDelete = React.useCallback(
     async (row: Budget) => {
-      await deleteBudget(row.id)
-      refresh()
+      try {
+        await deleteBudget(row.id)
+        toast.success("Budget deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof BudgetApiError
+            ? err.message
+            : "Failed to delete budget. Please try again.",
+        )
+      }
     },
     [refresh],
   )

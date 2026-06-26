@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { RHFForm, RHFInput, RHFSelect } from "@/components/hook-form"
@@ -66,8 +67,10 @@ export function SupplierForm({
       try {
         if (isEdit && supplierId != null) {
           await updateSupplier(supplierId, input)
+          toast.success("Supplier updated.")
         } else {
           await createSupplier(input)
+          toast.success("Supplier created.")
         }
         router.push(SUPPLIER_LIST_PATH)
         router.refresh()

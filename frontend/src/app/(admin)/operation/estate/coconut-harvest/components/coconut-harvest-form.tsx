@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -133,11 +134,13 @@ export function CoconutHarvestForm({
       try {
         if (isEdit && coconutHarvestId != null) {
           await updateCoconutHarvest(coconutHarvestId, input)
+          toast.success("Coconut harvest updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(COCONUT_HARVEST_NEW_PATH)
           router.refresh()
         } else {
           await createCoconutHarvest(input)
+          toast.success("Coconut harvest created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()

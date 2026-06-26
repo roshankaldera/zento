@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteReimbursement } from "@/lib/reimbursement-service"
+import {
+  deleteReimbursement,
+  ReimbursementApiError,
+} from "@/lib/reimbursement-service"
 import type { Reimbursement } from "@/types/reimbursement"
 import { getReimbursementColumns } from "./reimbursement-columns"
 import {
@@ -34,8 +38,17 @@ export function ReimbursementListScreen({
 
   const handleDelete = React.useCallback(
     async (row: Reimbursement) => {
-      await deleteReimbursement(row.id)
-      refresh()
+      try {
+        await deleteReimbursement(row.id)
+        toast.success("Reimbursement deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof ReimbursementApiError
+            ? err.message
+            : "Failed to delete reimbursement. Please try again.",
+        )
+      }
     },
     [refresh],
   )

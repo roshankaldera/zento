@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteAccount } from "@/lib/account-service"
+import { AccountApiError, deleteAccount } from "@/lib/account-service"
 import type { Account } from "@/types/account"
 import { getAccountColumns } from "./account-columns"
 import { ACCOUNT_NEW_PATH, accountEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function AccountListScreen({
 
   const handleDelete = React.useCallback(
     async (account: Account) => {
-      await deleteAccount(account.id)
-      refresh()
+      try {
+        await deleteAccount(account.id)
+        toast.success("Account deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof AccountApiError
+            ? err.message
+            : "Failed to delete account. Please try again.",
+        )
+      }
     },
     [refresh],
   )

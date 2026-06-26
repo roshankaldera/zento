@@ -4,8 +4,12 @@ import React from "react";
 
 import type { Option } from "@/components/hook-form";
 import { listAssets } from "@/lib/asset-service";
+import { listBusinesses } from "@/lib/business-service";
 import { SoloarForm } from "../components/soloar-form";
-import { soloarFormDefaults } from "../components/soloar-schema";
+import {
+  soloarFormDefaults,
+  type BusinessScopedOption,
+} from "../components/soloar-schema";
 
 export const metadata: Metadata = {
   title: "New Solar | Zento",
@@ -13,11 +17,23 @@ export const metadata: Metadata = {
 };
 
 export default async function NewSoloarPage() {
-  const assets = await listAssets().catch(() => []);
-  // "Soloar" references a Solar-type asset (type 4).
-  const soloarOptions: Option[] = assets
+  const [assets, businesses] = await Promise.all([
+    listAssets().catch(() => []),
+    listBusinesses().catch(() => []),
+  ]);
+  // "Soloar" references a Solar-type asset (type 4); tag each with its business
+  // so the form can scope the list to the selected business.
+  const soloarOptions: BusinessScopedOption[] = assets
     .filter((a) => a.type === 4)
-    .map((a) => ({ label: a.name, value: String(a.id) }));
+    .map((a) => ({
+      label: a.name,
+      value: String(a.id),
+      businessId: a.businessId,
+    }));
+  const businessOptions: Option[] = businesses.map((b) => ({
+    label: b.name,
+    value: String(b.id),
+  }));
 
   return (
     <div>
@@ -26,6 +42,7 @@ export default async function NewSoloarPage() {
         <SoloarForm
           mode="create"
           defaultValues={soloarFormDefaults}
+          businessOptions={businessOptions}
           soloarOptions={soloarOptions}
         />
       </div>

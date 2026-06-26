@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteUser } from "@/lib/user-service"
+import { deleteUser, UserApiError } from "@/lib/user-service"
 import type { User } from "@/types/user"
 import { getUserColumns } from "./user-columns"
 import { USER_NEW_PATH, userEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function UserListScreen({
 
   const handleDelete = React.useCallback(
     async (user: User) => {
-      await deleteUser(user.id)
-      refresh()
+      try {
+        await deleteUser(user.id)
+        toast.success("User deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof UserApiError
+            ? err.message
+            : "Failed to delete user. Please try again.",
+        )
+      }
     },
     [refresh],
   )

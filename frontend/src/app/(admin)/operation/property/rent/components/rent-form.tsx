@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -22,6 +23,7 @@ import {
   rentSchema,
   statusOptions,
   toRentInput,
+  type BusinessScopedOption,
   type RentFormValues,
 } from "./rent-schema"
 import { RENT_LIST_PATH } from "./constants"
@@ -32,8 +34,8 @@ interface RentFormProps {
   defaultValues: RentFormValues
   /** Business options for the FK autocomplete (fetched server-side). */
   businessOptions: Option[]
-  /** Asset options for the FK autocomplete (fetched server-side). */
-  assetOptions: Option[]
+  /** Asset options, tagged with their business for client-side scoping. */
+  assetOptions: BusinessScopedOption[]
 }
 
 /**
@@ -61,8 +63,10 @@ export function RentForm({
       try {
         if (mode === "edit" && rentId != null) {
           await updateRent(rentId, input)
+          toast.success("Rent updated.")
         } else {
           await createRent(input)
+          toast.success("Rent created.")
         }
         router.push(RENT_LIST_PATH)
         router.refresh()
@@ -75,6 +79,36 @@ export function RentForm({
     },
     [mode, rentId, router, form],
   )
+
+  // The asset list is scoped to the selected business. Filtering is done
+  // client-side off the pre-fetched, business-tagged option list.
+  const selectedBusinessId = useWatch({
+    control: form.control,
+    name: "businessId",
+  })
+  const filteredAssetOptions = React.useMemo(
+    () =>
+      selectedBusinessId
+        ? assetOptions.filter(
+            (o) => String(o.businessId) === selectedBusinessId,
+          )
+        : [],
+    [assetOptions, selectedBusinessId],
+  )
+
+  // When the business changes, clear the asset that belonged to the previous
+  // business so a stale FK can't be submitted. Skips the initial mount (ref
+  // starts undefined) so a loaded record keeps its selection.
+  const prevBusinessId = React.useRef<string | undefined>(undefined)
+  React.useEffect(() => {
+    if (
+      prevBusinessId.current !== undefined &&
+      prevBusinessId.current !== selectedBusinessId
+    ) {
+      form.setValue("assetId", "", { shouldValidate: false })
+    }
+    prevBusinessId.current = selectedBusinessId
+  }, [selectedBusinessId, form])
 
   const rootError = form.formState.errors.root?.message
   const submitting = form.formState.isSubmitting
@@ -98,8 +132,11 @@ export function RentForm({
         name="assetId"
         label="Asset"
         required
-        options={assetOptions}
-        placeholder="Select an asset"
+        options={filteredAssetOptions}
+        disabled={!selectedBusinessId}
+        placeholder={
+          selectedBusinessId ? "Select an asset" : "Select a business first"
+        }
         searchPlaceholder="Search assets..."
         triggerClassName="w-full"
       />

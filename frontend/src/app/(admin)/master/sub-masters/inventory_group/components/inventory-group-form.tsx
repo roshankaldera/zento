@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { RHFForm, RHFInput, RHFSelect, RHFTextarea } from "@/components/hook-form"
@@ -49,8 +50,10 @@ export function InventoryGroupForm({
       try {
         if (mode === "edit" && inventoryGroupId != null) {
           await updateInventoryGroup(inventoryGroupId, input)
+          toast.success("Inventory group updated.")
         } else {
           await createInventoryGroup(input)
+          toast.success("Inventory group created.")
         }
         router.push(INVENTORY_GROUP_LIST_PATH)
         router.refresh()

@@ -6,6 +6,7 @@ export type AssetStatus = 1 | 2
 
 export interface Asset {
   id: number
+  businessId: number
   name: string
   type: AssetType
   status: AssetStatus
@@ -14,6 +15,7 @@ export interface Asset {
 
 /** Payload to create an asset (server assigns `id`). */
 export interface CreateAssetInput {
+  businessId: number
   name: string
   type: AssetType
   status: AssetStatus

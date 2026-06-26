@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { RHFForm, RHFInput, RHFSelect, type Option } from "@/components/hook-form"
@@ -55,8 +56,10 @@ export function AccountForm({
       try {
         if (mode === "edit" && accountId != null) {
           await updateAccount(accountId, input)
+          toast.success("Account updated.")
         } else {
           await createAccount(input)
+          toast.success("Account created.")
         }
         router.push(ACCOUNT_LIST_PATH)
         router.refresh()

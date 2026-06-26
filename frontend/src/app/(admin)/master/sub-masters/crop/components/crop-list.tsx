@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteCrop } from "@/lib/crop-service"
+import { CropApiError, deleteCrop } from "@/lib/crop-service"
 import type { Crop } from "@/types/crop"
 import { getCropColumns } from "./crop-columns"
 import { CROP_NEW_PATH, cropEditPath } from "./constants"
@@ -37,8 +38,17 @@ export function CropListScreen({ initialCrops, error = null }: CropListScreenPro
 
   const handleDelete = React.useCallback(
     async (crop: Crop) => {
-      await deleteCrop(crop.id)
-      refresh()
+      try {
+        await deleteCrop(crop.id)
+        toast.success("Crop deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof CropApiError
+            ? err.message
+            : "Failed to delete crop. Please try again.",
+        )
+      }
     },
     [refresh]
   )

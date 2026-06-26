@@ -23,6 +23,21 @@ export function getBookingColumns({
   onDelete,
 }: BookingColumnHandlers = {}): ColumnDef<Booking>[] {
   return [
+        {
+      accessorKey: "bookingNo",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Booking No" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-sm">
+          {row.getValue("bookingNo")}
+        </span>
+      ),
+      meta: {
+        exportHeader: "Booking No",
+        exportValue: (b: Booking) => b.bookingNo,
+      },
+    },
     {
       accessorKey: "customer",
       header: ({ column }) => (
@@ -118,21 +133,6 @@ export function getBookingColumns({
       meta: {
         exportHeader: "Currency",
         exportValue: (b: Booking) => currencyLabel(b.currency),
-      },
-    },
-    {
-      accessorKey: "finalRevenue",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Final Revenue" />
-      ),
-      cell: ({ row }) => (
-        <span className="text-sm">
-          {formatMoney(row.getValue("finalRevenue"))}
-        </span>
-      ),
-      meta: {
-        exportHeader: "Final Revenue",
-        exportValue: (b: Booking) => formatMoney(b.finalRevenue),
       },
     },
     {

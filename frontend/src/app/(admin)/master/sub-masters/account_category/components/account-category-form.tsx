@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { RHFForm, RHFInput, RHFSelect, RHFTextarea } from "@/components/hook-form"
@@ -49,8 +50,10 @@ export function AccountCategoryForm({
       try {
         if (mode === "edit" && accountCategoryId != null) {
           await updateAccountCategory(accountCategoryId, input)
+          toast.success("Account category updated.")
         } else {
           await createAccountCategory(input)
+          toast.success("Account category created.")
         }
         router.push(ACCOUNT_CATEGORY_LIST_PATH)
         router.refresh()

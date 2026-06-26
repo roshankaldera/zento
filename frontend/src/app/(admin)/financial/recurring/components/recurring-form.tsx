@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -137,11 +138,13 @@ export function RecurringForm({
       try {
         if (isEdit && recurringId != null) {
           await updateRecurring(recurringId, input)
+          toast.success("Recurring updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(RECURRING_NEW_PATH)
           router.refresh()
         } else {
           await createRecurring(input)
+          toast.success("Recurring created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()

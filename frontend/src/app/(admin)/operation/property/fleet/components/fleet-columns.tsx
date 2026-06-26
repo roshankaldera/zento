@@ -17,6 +17,20 @@ export function getFleetColumns({
 }: FleetColumnHandlers = {}): ColumnDef<Fleet>[] {
   return [
     {
+      id: "business",
+      accessorFn: (fleet) => fleet.business?.name ?? "—",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Business" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.business?.name ?? "—"}</span>
+      ),
+      meta: {
+        exportHeader: "Business",
+        exportValue: (f: Fleet) => f.business?.name ?? "",
+      },
+    },
+    {
       accessorKey: "vehicleNo",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Vehicle No" />

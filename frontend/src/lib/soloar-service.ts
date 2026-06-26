@@ -51,6 +51,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 function toPayload(input: CreateSoloarInput | UpdateSoloarInput) {
   return {
+    businessId: input.businessId,
     soloarId: input.soloarId,
     date: input.date,
     meterReading: input.meterReading,

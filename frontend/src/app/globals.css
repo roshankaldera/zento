@@ -287,6 +287,38 @@
   background-color: #344054;
 }
 
+/* Scrollbar hidden by default, revealed only while hovering the area.
+   The gutter is always reserved so revealing it causes no layout shift. */
+@utility hover-scrollbar {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+
+  &::-webkit-scrollbar {
+    @apply size-1.5;
+  }
+
+  &::-webkit-scrollbar-track {
+    @apply rounded-full;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-transparent transition-colors;
+  }
+
+  &:hover {
+    scrollbar-color: var(--color-gray-300) transparent;
+  }
+
+  &:hover::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700;
+  }
+}
+
+.dark .hover-scrollbar:hover {
+  scrollbar-color: #344054 transparent;
+}
+
 @layer utilities {
   /* For Remove Date Icon */
   input[type="date"]::-webkit-inner-spin-button,

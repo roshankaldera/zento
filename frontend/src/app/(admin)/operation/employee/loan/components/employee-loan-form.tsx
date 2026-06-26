@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -87,11 +88,13 @@ export function EmployeeLoanForm({
       try {
         if (isEdit && employeeLoanId != null) {
           await updateEmployeeLoan(employeeLoanId, input)
+          toast.success("Loan updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(EMPLOYEE_LOAN_NEW_PATH)
           router.refresh()
         } else {
           await createEmployeeLoan(input)
+          toast.success("Loan created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()

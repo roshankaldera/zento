@@ -9,6 +9,7 @@ import type { Asset, AssetStatus, AssetType } from "@/types/asset"
  * boundary (see `toAssetInput`).
  */
 export const assetSchema = z.object({
+  businessId: z.string().min(1, "Business is required"),
   name: z
     .string()
     .trim()
@@ -45,6 +46,7 @@ export const statusOptions: Option[] = [
 
 /** Default values for the create form. */
 export const assetFormDefaults: AssetFormValues = {
+  businessId: "",
   name: "",
   type: "1",
   status: "1",
@@ -54,6 +56,7 @@ export const assetFormDefaults: AssetFormValues = {
 /** Map a loaded record into form values (number type/status -> string). */
 export function toAssetFormValues(asset: Asset): AssetFormValues {
   return {
+    businessId: asset.businessId != null ? String(asset.businessId) : "",
     name: asset.name,
     type: String(asset.type) as AssetFormValues["type"],
     status: String(asset.status) as AssetFormValues["status"],
@@ -64,6 +67,7 @@ export function toAssetFormValues(asset: Asset): AssetFormValues {
 /** Map submitted form values into the service input (string -> number). */
 export function toAssetInput(values: AssetFormValues) {
   return {
+    businessId: Number(values.businessId),
     name: values.name.trim(),
     type: Number(values.type) as AssetType,
     status: Number(values.status) as AssetStatus,

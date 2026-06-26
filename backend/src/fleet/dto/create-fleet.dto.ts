@@ -1,5 +1,6 @@
 import {
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -11,6 +12,14 @@ import {
 const MM_DD = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])$/;
 
 export class CreateFleetDto {
+  @IsNotEmpty()
+  @IsInt()
+  businessId: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  assetId: number;
+
   @IsNotEmpty()
   @IsString()
   @MaxLength(10)

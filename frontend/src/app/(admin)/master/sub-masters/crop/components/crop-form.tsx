@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { RHFForm, RHFInput, RHFSelect, RHFTextarea } from "@/components/hook-form"
@@ -45,8 +46,10 @@ export function CropForm({ mode, cropId, defaultValues }: CropFormProps) {
       try {
         if (mode === "edit" && cropId != null) {
           await updateCrop(cropId, input)
+          toast.success("Crop updated.")
         } else {
           await createCrop(input)
+          toast.success("Crop created.")
         }
         router.push(CROP_LIST_PATH)
         router.refresh()

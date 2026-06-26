@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteExchangeRate } from "@/lib/exchange-rate-service"
+import { deleteExchangeRate, ExchangeRateApiError } from "@/lib/exchange-rate-service"
 import type { ExchangeRate } from "@/types/exchange-rate"
 import { getExchangeRateColumns } from "./exchange-rate-columns"
 import {
@@ -34,8 +35,17 @@ export function ExchangeRateListScreen({
 
   const handleDelete = React.useCallback(
     async (rate: ExchangeRate) => {
-      await deleteExchangeRate(rate.id)
-      refresh()
+      try {
+        await deleteExchangeRate(rate.id)
+        toast.success("Exchange rate deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof ExchangeRateApiError
+            ? err.message
+            : "Failed to delete exchange rate. Please try again.",
+        )
+      }
     },
     [refresh],
   )

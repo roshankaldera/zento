@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import React from "react";
 
 import { listAssets } from "@/lib/asset-service";
+import { listBusinesses } from "@/lib/business-service";
 import type { Asset } from "@/types/asset";
 import { AssetListScreen } from "./components/asset-list";
 
@@ -20,11 +21,20 @@ export default async function MasterAssetPage() {
     error = "Failed to load assets.";
   }
 
+  const businesses = await listBusinesses().catch(() => []);
+  const businessNameById: Record<number, string> = Object.fromEntries(
+    businesses.map((b) => [b.id, b.name]),
+  );
+
   return (
     <div>
       <PageBreadcrumb pageTitle="Asset" />
       <div className="min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
-        <AssetListScreen initialAssets={initialAssets} error={error} />
+        <AssetListScreen
+          initialAssets={initialAssets}
+          businessNameById={businessNameById}
+          error={error}
+        />
       </div>
     </div>
   );

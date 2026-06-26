@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -77,8 +78,10 @@ export function InventoryForm({
       try {
         if (isEdit && inventoryId != null) {
           await updateInventory(inventoryId, input)
+          toast.success("Inventory updated.")
         } else {
           await createInventory(input)
+          toast.success("Inventory created.")
         }
         router.push(INVENTORY_LIST_PATH)
         router.refresh()

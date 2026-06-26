@@ -10,8 +10,12 @@ RUN npm ci
 COPY . .
 # NEXT_PUBLIC_* values are inlined into the client bundle at BUILD time, so the
 # API base must be supplied here (not just at runtime).
-ARG NEXT_PUBLIC_API_URL=http://localhost:3001
+ARG NEXT_PUBLIC_API_URL=https://zento.pbssdev.space/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Internal backend address the /api rewrite proxies to (baked into the route
+# manifest at build time). Reachable from the frontend on devops_network.
+ARG BACKEND_INTERNAL_URL=http://172.16.200.114:3001
+ENV BACKEND_INTERNAL_URL=$BACKEND_INTERNAL_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 # Produces .next/standalone (minimal server + traced deps) and .next/static.
 RUN npm run build
@@ -22,6 +26,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# Bind on all interfaces (NOT a fixed IP): the standalone server.js binds to
+# $HOSTNAME, so a hardcoded container IP would crash with EADDRNOTAVAIL if that
+# IP isn't assigned, and breaks published-port access. 0.0.0.0 covers both the
+# static IP on devops_network and the host port mapping.
 ENV HOSTNAME=0.0.0.0
 # Standalone server bundle, static assets, and public/ are all `next start` needs.
 # (`node` is the image's built-in unprivileged user, uid 1000.)

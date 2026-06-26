@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteRecurring } from "@/lib/recurring-service"
+import { deleteRecurring, RecurringApiError } from "@/lib/recurring-service"
 import type { Recurring } from "@/types/recurring"
 import { getRecurringColumns } from "./recurring-columns"
 import { RECURRING_NEW_PATH, recurringEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function RecurringListScreen({
 
   const handleDelete = React.useCallback(
     async (row: Recurring) => {
-      await deleteRecurring(row.id)
-      refresh()
+      try {
+        await deleteRecurring(row.id)
+        toast.success("Recurring deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof RecurringApiError
+            ? err.message
+            : "Failed to delete recurring. Please try again.",
+        )
+      }
     },
     [refresh],
   )

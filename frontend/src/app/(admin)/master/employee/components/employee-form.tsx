@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -60,8 +61,10 @@ export function EmployeeForm({
       try {
         if (mode === "edit" && employeeId != null) {
           await updateEmployee(employeeId, input)
+          toast.success("Employee updated.")
         } else {
           await createEmployee(input)
+          toast.success("Employee created.")
         }
         router.push(EMPLOYEE_LIST_PATH)
         router.refresh()

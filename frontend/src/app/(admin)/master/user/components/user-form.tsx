@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -71,8 +72,10 @@ export function UserForm({
       try {
         if (isEdit && userId != null) {
           await updateUser(userId, input)
+          toast.success("User updated.")
         } else {
           await createUser(input)
+          toast.success("User created.")
         }
         router.push(USER_LIST_PATH)
         router.refresh()

@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteEmployee } from "@/lib/employee-service"
+import { deleteEmployee, EmployeeApiError } from "@/lib/employee-service"
 import type { Employee } from "@/types/employee"
 import { getEmployeeColumns } from "./employee-columns"
 import { EMPLOYEE_NEW_PATH, employeeEditPath } from "./constants"
@@ -40,8 +41,17 @@ export function EmployeeListScreen({
 
   const handleDelete = React.useCallback(
     async (employee: Employee) => {
-      await deleteEmployee(employee.id)
-      refresh()
+      try {
+        await deleteEmployee(employee.id)
+        toast.success("Employee deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof EmployeeApiError
+            ? err.message
+            : "Failed to delete employee. Please try again.",
+        )
+      }
     },
     [refresh],
   )

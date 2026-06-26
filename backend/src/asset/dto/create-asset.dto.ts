@@ -1,5 +1,6 @@
 import {
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -7,6 +8,10 @@ import {
 } from 'class-validator';
 
 export class CreateAssetDto {
+  @IsNotEmpty()
+  @IsInt()
+  businessId: number;
+
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)

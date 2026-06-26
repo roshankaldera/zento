@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteLeave } from "@/lib/leave-service"
+import { deleteLeave, LeaveApiError } from "@/lib/leave-service"
 import type { Leave } from "@/types/leave"
 import { getLeaveColumns } from "./leave-columns"
 import { LEAVE_NEW_PATH, leaveEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function LeaveListScreen({
 
   const handleDelete = React.useCallback(
     async (leave: Leave) => {
-      await deleteLeave(leave.id)
-      refresh()
+      try {
+        await deleteLeave(leave.id)
+        toast.success("Leave deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof LeaveApiError
+            ? err.message
+            : "Failed to delete leave. Please try again.",
+        )
+      }
     },
     [refresh],
   )

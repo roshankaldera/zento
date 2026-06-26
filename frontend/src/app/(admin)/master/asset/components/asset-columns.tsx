@@ -8,15 +8,34 @@ import type { Asset } from "@/types/asset"
 import { assetTypeLabel } from "./asset-schema"
 
 export interface AssetColumnHandlers {
+  businessNameById?: Record<number, string>
   onEdit?: (asset: Asset) => void
   onDelete?: (asset: Asset) => void
 }
 
 export function getAssetColumns({
+  businessNameById = {},
   onEdit,
   onDelete,
 }: AssetColumnHandlers = {}): ColumnDef<Asset>[] {
+  const businessName = (asset: Asset) =>
+    businessNameById[asset.businessId] ?? "—"
+
   return [
+    {
+      id: "business",
+      accessorFn: (asset) => businessName(asset),
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Business" />
+      ),
+      cell: ({ row }) => (
+        <span className="text-sm">{businessName(row.original)}</span>
+      ),
+      meta: {
+        exportHeader: "Business",
+        exportValue: (a: Asset) => businessName(a),
+      },
+    },
     {
       accessorKey: "name",
       header: ({ column }) => (

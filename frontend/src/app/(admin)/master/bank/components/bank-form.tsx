@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -61,8 +62,10 @@ export function BankForm({
       try {
         if (mode === "edit" && bankId != null) {
           await updateBank(bankId, input)
+          toast.success("Bank updated.")
         } else {
           await createBank(input)
+          toast.success("Bank created.")
         }
         router.push(BANK_LIST_PATH)
         router.refresh()

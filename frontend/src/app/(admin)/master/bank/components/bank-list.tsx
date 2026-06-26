@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteBank } from "@/lib/bank-service"
+import { BankApiError, deleteBank } from "@/lib/bank-service"
 import type { Bank } from "@/types/bank"
 import { getBankColumns } from "./bank-columns"
 import { BANK_NEW_PATH, bankEditPath } from "./constants"
@@ -37,8 +38,17 @@ export function BankListScreen({ initialBanks, error = null }: BankListScreenPro
 
   const handleDelete = React.useCallback(
     async (bank: Bank) => {
-      await deleteBank(bank.id)
-      refresh()
+      try {
+        await deleteBank(bank.id)
+        toast.success("Bank deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof BankApiError
+            ? err.message
+            : "Failed to delete bank. Please try again.",
+        )
+      }
     },
     [refresh],
   )

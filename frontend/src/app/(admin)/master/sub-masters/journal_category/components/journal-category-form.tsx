@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { RHFForm, RHFInput, RHFSelect, RHFTextarea } from "@/components/hook-form"
@@ -49,8 +50,10 @@ export function JournalCategoryForm({
       try {
         if (mode === "edit" && journalCategoryId != null) {
           await updateJournalCategory(journalCategoryId, input)
+          toast.success("Journal category updated.")
         } else {
           await createJournalCategory(input)
+          toast.success("Journal category created.")
         }
         router.push(JOURNAL_CATEGORY_LIST_PATH)
         router.refresh()

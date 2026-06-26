@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteKot } from "@/lib/kot-service"
+import { deleteKot, KotApiError } from "@/lib/kot-service"
 import type { Kot } from "@/types/kot"
 import { getKotColumns } from "./kot-columns"
 import { KOT_NEW_PATH, kotEditPath } from "./constants"
@@ -28,8 +29,17 @@ export function KotListScreen({ initialKots, error = null }: KotListScreenProps)
 
   const handleDelete = React.useCallback(
     async (kot: Kot) => {
-      await deleteKot(kot.id)
-      refresh()
+      try {
+        await deleteKot(kot.id)
+        toast.success("KOT deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof KotApiError
+            ? err.message
+            : "Failed to delete KOT. Please try again.",
+        )
+      }
     },
     [refresh],
   )

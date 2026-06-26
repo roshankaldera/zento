@@ -6,7 +6,10 @@ import type { Option } from "@/components/hook-form";
 import { listAssets } from "@/lib/asset-service";
 import { listBusinesses } from "@/lib/business-service";
 import { RentForm } from "../components/rent-form";
-import { rentFormDefaults } from "../components/rent-schema";
+import {
+  rentFormDefaults,
+  type BusinessScopedOption,
+} from "../components/rent-schema";
 
 export const metadata: Metadata = {
   title: "New Rent | Zento",
@@ -22,10 +25,14 @@ export default async function NewRentPage() {
     label: b.name,
     value: String(b.id),
   }));
-  const assetOptions: Option[] = assets.map((a) => ({
-    label: a.name,
-    value: String(a.id),
-  }));
+  // Rent applies to Building-type assets (type 3).
+  const assetOptions: BusinessScopedOption[] = assets
+    .filter((a) => a.type === 3)
+    .map((a) => ({
+      label: a.name,
+      value: String(a.id),
+      businessId: a.businessId,
+    }));
 
   return (
     <div>

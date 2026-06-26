@@ -4,9 +4,16 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { RHFForm, RHFInput, RHFSelect, RHFTextarea } from "@/components/hook-form"
+import {
+  RHFForm,
+  RHFInput,
+  RHFSelect,
+  RHFTextarea,
+  type Option,
+} from "@/components/hook-form"
 import {
   createAsset,
   DuplicateAssetNameError,
@@ -25,13 +32,19 @@ interface AssetFormProps {
   mode: "create" | "edit"
   assetId?: number
   defaultValues: AssetFormValues
+  businessOptions: Option[]
 }
 
 /**
  * Shared create/edit form for an Asset. Built from the reusable RHF field
  * library; on success it returns to the list and refreshes it.
  */
-export function AssetForm({ mode, assetId, defaultValues }: AssetFormProps) {
+export function AssetForm({
+  mode,
+  assetId,
+  defaultValues,
+  businessOptions,
+}: AssetFormProps) {
   const router = useRouter()
 
   const form = useForm<AssetFormValues>({
@@ -46,8 +59,10 @@ export function AssetForm({ mode, assetId, defaultValues }: AssetFormProps) {
       try {
         if (mode === "edit" && assetId != null) {
           await updateAsset(assetId, input)
+          toast.success("Asset updated.")
         } else {
           await createAsset(input)
+          toast.success("Asset created.")
         }
         router.push(ASSET_LIST_PATH)
         router.refresh()
@@ -73,6 +88,14 @@ export function AssetForm({ mode, assetId, defaultValues }: AssetFormProps) {
 
   return (
     <RHFForm form={form} onSubmit={onSubmit} className="grid max-w-xl gap-5">
+      <RHFSelect<AssetFormValues>
+        name="businessId"
+        label="Business"
+        required
+        options={businessOptions}
+        placeholder="Select a business"
+        triggerClassName="w-full sm:w-60"
+      />
       <RHFInput<AssetFormValues>
         name="name"
         label="Name"

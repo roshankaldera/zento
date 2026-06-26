@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteEmployeeLoan } from "@/lib/employee-loan-service"
+import { deleteEmployeeLoan, EmployeeLoanApiError } from "@/lib/employee-loan-service"
 import type { EmployeeLoan } from "@/types/employee-loan"
 import { getEmployeeLoanColumns } from "./employee-loan-columns"
 import { EMPLOYEE_LOAN_NEW_PATH, employeeLoanEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function EmployeeLoanListScreen({
 
   const handleDelete = React.useCallback(
     async (loan: EmployeeLoan) => {
-      await deleteEmployeeLoan(loan.id)
-      refresh()
+      try {
+        await deleteEmployeeLoan(loan.id)
+        toast.success("Loan deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof EmployeeLoanApiError
+            ? err.message
+            : "Failed to delete loan. Please try again.",
+        )
+      }
     },
     [refresh],
   )

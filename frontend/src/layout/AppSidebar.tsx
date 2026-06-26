@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
+  BellIcon,
   BoxCubeIcon,
   CalenderIcon,
   ChevronDownIcon,
@@ -37,6 +38,11 @@ const homeItems: NavItem[] = [
       { name: "Budget vs Actual", path: "/home/dashboards/budget-vs-actual" },
       { name: "Profit and Loss", path: "/home/dashboards/profit-and-loss" },
     ],
+  },
+  {
+    icon: <BellIcon />,
+    name: "Notification",
+    path: "/home/notification",
   },
   {
     icon: <CalenderIcon />,
@@ -93,8 +99,8 @@ const operationItems: NavItem[] = [
     icon: <PageIcon />,
     name: "Property",
     subItems: [
-      { name: "Rent", path: "/operation/property/rent" },
-      { name: "Solar", path: "/operation/property/solar" },
+      { name: "Rent Agreement", path: "/operation/property/rent" },
+      { name: "Solar Reading", path: "/operation/property/solar" },
       { name: "Fleet", path: "/operation/property/fleet" },
     ],
   },
@@ -115,6 +121,7 @@ const masterItems: NavItem[] = [
   { icon: <ListIcon />, name: "Account", path: "/master/account" },
   { icon: <BoxCubeIcon />, name: "Asset", path: "/master/asset" },
   { icon: <PieChartIcon />, name: "Exchange Rate", path: "/master/exchange_rate" },
+  { icon: <ListIcon />, name: "Booking Price", path: "/master/booking-price" },
   { icon: <TableIcon />, name: "Inventory", path: "/master/inventory" },
   { icon: <UserCircleIcon />, name: "User", path: "/master/user" },
   {
@@ -137,8 +144,17 @@ const menuGroups: { title: string; type: MenuType; items: NavItem[] }[] = [
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } =
+    useSidebar();
   const pathname = usePathname();
+
+  // On mobile, navigating to a page should close the slide-over sidebar.
+  // Direct-link items (e.g. Journal) otherwise leave the menu open over the page.
+  const handleNavClick = useCallback(() => {
+    if (isMobileOpen) {
+      toggleMobileSidebar();
+    }
+  }, [isMobileOpen, toggleMobileSidebar]);
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -189,6 +205,7 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 href={nav.path}
+                onClick={handleNavClick}
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                 }`}
@@ -226,6 +243,7 @@ const AppSidebar: React.FC = () => {
                   <li key={subItem.name}>
                     <Link
                       href={subItem.path}
+                      onClick={handleNavClick}
                       className={`menu-dropdown-item ${
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
@@ -379,7 +397,7 @@ const AppSidebar: React.FC = () => {
           )}
         </Link>
       </div>
-      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
+      <div className="flex flex-col overflow-y-auto duration-300 ease-linear hover-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             {menuGroups.map((group) => (

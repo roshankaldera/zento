@@ -59,6 +59,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 function toPayload(input: CreateAssetInput | UpdateAssetInput) {
   const remark = input.remark?.trim()
   return {
+    businessId: input.businessId,
     name: input.name.trim(),
     type: input.type,
     status: input.status,

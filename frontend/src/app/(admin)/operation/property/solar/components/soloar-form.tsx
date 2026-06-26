@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -11,12 +12,14 @@ import {
   RHFDatePicker,
   RHFForm,
   RHFNumberInput,
+  RHFSelect,
   type Option,
 } from "@/components/hook-form"
 import { createSoloar, updateSoloar } from "@/lib/soloar-service"
 import {
   soloarSchema,
   toSoloarInput,
+  type BusinessScopedOption,
   type SoloarFormValues,
 } from "./soloar-schema"
 import { SOLOAR_LIST_PATH } from "./constants"
@@ -25,8 +28,10 @@ interface SoloarFormProps {
   mode: "create" | "edit"
   soloarId?: number
   defaultValues: SoloarFormValues
-  /** Solar asset options for the FK autocomplete (fetched server-side). */
-  soloarOptions: Option[]
+  /** Business options for the top dropdown (fetched server-side). */
+  businessOptions: Option[]
+  /** Solar asset options, tagged with their business for client-side scoping. */
+  soloarOptions: BusinessScopedOption[]
 }
 
 /**
@@ -37,6 +42,7 @@ export function SoloarForm({
   mode,
   soloarId,
   defaultValues,
+  businessOptions,
   soloarOptions,
 }: SoloarFormProps) {
   const router = useRouter()
@@ -53,8 +59,10 @@ export function SoloarForm({
       try {
         if (mode === "edit" && soloarId != null) {
           await updateSoloar(soloarId, input)
+          toast.success("Solar reading updated.")
         } else {
           await createSoloar(input)
+          toast.success("Solar reading created.")
         }
         router.push(SOLOAR_LIST_PATH)
         router.refresh()
@@ -68,17 +76,60 @@ export function SoloarForm({
     [mode, soloarId, router, form],
   )
 
+  // The solar-asset list is scoped to the selected business. Filtering is done
+  // client-side off the pre-fetched, business-tagged option list.
+  const selectedBusinessId = useWatch({
+    control: form.control,
+    name: "businessId",
+  })
+  const filteredSoloarOptions = React.useMemo(
+    () =>
+      selectedBusinessId
+        ? soloarOptions.filter(
+            (o) => String(o.businessId) === selectedBusinessId,
+          )
+        : [],
+    [soloarOptions, selectedBusinessId],
+  )
+
+  // When the business changes, clear the solar asset that belonged to the
+  // previous business so a stale FK can't be submitted. Skips the initial mount
+  // (ref starts undefined) so a loaded record keeps its selection.
+  const prevBusinessId = React.useRef<string | undefined>(undefined)
+  React.useEffect(() => {
+    if (
+      prevBusinessId.current !== undefined &&
+      prevBusinessId.current !== selectedBusinessId
+    ) {
+      form.setValue("soloarId", "", { shouldValidate: false })
+    }
+    prevBusinessId.current = selectedBusinessId
+  }, [selectedBusinessId, form])
+
   const rootError = form.formState.errors.root?.message
   const submitting = form.formState.isSubmitting
 
   return (
     <RHFForm form={form} onSubmit={onSubmit} className="grid max-w-xl gap-5">
+      <RHFSelect<SoloarFormValues>
+        name="businessId"
+        label="Business"
+        required
+        options={businessOptions}
+        placeholder="Select a business"
+        triggerClassName="w-full sm:w-80"
+      />
       <RHFAutocomplete<SoloarFormValues>
         name="soloarId"
         label="Soloar"
         required
-        options={soloarOptions}
-        placeholder="Select a solar asset"
+        options={filteredSoloarOptions}
+        disabled={!selectedBusinessId}
+        placeholder={
+          selectedBusinessId
+            ? "Select a solar asset"
+            : "Select a business first"
+        }
         searchPlaceholder="Search solar assets..."
         triggerClassName="w-full sm:w-80"
       />

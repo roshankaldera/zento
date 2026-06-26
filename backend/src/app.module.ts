@@ -6,8 +6,10 @@ import { AssetModule } from './asset/asset.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AttendanceModule } from './attendance/attendance.module';
+import { AuthModule } from './auth/auth.module';
 import { BankModule } from './bank/bank.module';
 import { BookingModule } from './booking/booking.module';
+import { BookingPriceModule } from './booking-price/booking-price.module';
 import { BudgetModule } from './budget/budget.module';
 import { BusinessModule } from './business/business.module';
 import { CashTransferModule } from './cash-transfer/cash-transfer.module';
@@ -26,6 +28,7 @@ import { KotModule } from './kot/kot.module';
 import { KotIngredientModule } from './kot-ingredient/kot-ingredient.module';
 import { LatexHarvestModule } from './latex-harvest/latex-harvest.module';
 import { LeaveModule } from './leave/leave.module';
+import { OtherHarvestModule } from './other-harvest/other-harvest.module';
 import { RecurringModule } from './recurring/recurring.module';
 import { ReimbursementModule } from './reimbursement/reimbursement.module';
 import { ReportsModule } from './reports/reports.module';
@@ -42,6 +45,7 @@ import { NumberingModule } from './numbering/numbering.module';
       isGlobal: true,
     }),
     PrismaModule,
+    AuthModule,
     NumberingModule,
     CropModule,
     AccountModule,
@@ -55,10 +59,12 @@ import { NumberingModule } from './numbering/numbering.module';
     LeaveModule,
     EmployeeLoanModule,
     BookingModule,
+    BookingPriceModule,
     KotModule,
     KotIngredientModule,
     CoconutHarvestModule,
     LatexHarvestModule,
+    OtherHarvestModule,
     SupplierModule,
     AssetModule,
     FleetModule,

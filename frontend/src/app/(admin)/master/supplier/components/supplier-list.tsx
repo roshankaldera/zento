@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteSupplier } from "@/lib/supplier-service"
+import { deleteSupplier, SupplierApiError } from "@/lib/supplier-service"
 import type { Supplier } from "@/types/supplier"
 import { getSupplierColumns } from "./supplier-columns"
 import { SUPPLIER_NEW_PATH, supplierEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function SupplierListScreen({
 
   const handleDelete = React.useCallback(
     async (supplier: Supplier) => {
-      await deleteSupplier(supplier.id)
-      refresh()
+      try {
+        await deleteSupplier(supplier.id)
+        toast.success("Supplier deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof SupplierApiError
+            ? err.message
+            : "Failed to delete supplier. Please try again.",
+        )
+      }
     },
     [refresh],
   )

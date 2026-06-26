@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -159,11 +160,13 @@ export function AttendanceForm({
       try {
         if (isEdit && attendanceId != null) {
           await updateAttendance(attendanceId, input)
+          toast.success("Attendance updated.")
           // Update mode: switch to an empty New form after a successful save.
           router.push(ATTENDANCE_NEW_PATH)
           router.refresh()
         } else {
           await createAttendance(input)
+          toast.success("Attendance created.")
           // Create mode: clear the form and stay on the New page (no redirect).
           form.reset(freshDefaults())
           router.refresh()
@@ -248,9 +251,11 @@ export function AttendanceForm({
         />
       </div>
 
+      <hr></hr>
+
       <div className="grid gap-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-foreground">Lines</h3>
+          <h3 className="text-sm font-medium text-foreground">Employees</h3>
           <Button
             type="button"
             variant="outline"
@@ -346,6 +351,8 @@ export function AttendanceForm({
           {rootError}
         </p>
       )}
+
+      <hr></hr>
 
       <div className="flex items-center gap-3 pt-2">
         <Button type="submit" disabled={submitting}>

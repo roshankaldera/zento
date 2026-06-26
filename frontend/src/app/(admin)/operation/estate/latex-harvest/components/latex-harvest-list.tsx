@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteLatexHarvest } from "@/lib/latex-harvest-service"
+import { deleteLatexHarvest, LatexHarvestApiError } from "@/lib/latex-harvest-service"
 import type { LatexHarvest } from "@/types/latex-harvest"
 import { getLatexHarvestColumns } from "./latex-harvest-columns"
 import { LATEX_HARVEST_NEW_PATH, latexHarvestEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function LatexHarvestListScreen({
 
   const handleDelete = React.useCallback(
     async (row: LatexHarvest) => {
-      await deleteLatexHarvest(row.id)
-      refresh()
+      try {
+        await deleteLatexHarvest(row.id)
+        toast.success("Latex harvest deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof LatexHarvestApiError
+            ? err.message
+            : "Failed to delete latex harvest. Please try again.",
+        )
+      }
     },
     [refresh],
   )

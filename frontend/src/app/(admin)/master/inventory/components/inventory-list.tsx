@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteInventory } from "@/lib/inventory-service"
+import { deleteInventory, InventoryApiError } from "@/lib/inventory-service"
 import type { Inventory } from "@/types/inventory"
 import { getInventoryColumns } from "./inventory-columns"
 import { INVENTORY_NEW_PATH, inventoryEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function InventoryListScreen({
 
   const handleDelete = React.useCallback(
     async (inventory: Inventory) => {
-      await deleteInventory(inventory.id)
-      refresh()
+      try {
+        await deleteInventory(inventory.id)
+        toast.success("Inventory deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof InventoryApiError
+            ? err.message
+            : "Failed to delete inventory. Please try again.",
+        )
+      }
     },
     [refresh],
   )

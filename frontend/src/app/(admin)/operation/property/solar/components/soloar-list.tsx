@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { ERPDataTable } from "@/components/data-table"
-import { deleteSoloar } from "@/lib/soloar-service"
+import { deleteSoloar, SoloarApiError } from "@/lib/soloar-service"
 import type { Soloar } from "@/types/soloar"
 import { getSoloarColumns } from "./soloar-columns"
 import { SOLOAR_NEW_PATH, soloarEditPath } from "./constants"
@@ -31,8 +32,17 @@ export function SoloarListScreen({
 
   const handleDelete = React.useCallback(
     async (soloar: Soloar) => {
-      await deleteSoloar(soloar.id)
-      refresh()
+      try {
+        await deleteSoloar(soloar.id)
+        toast.success("Solar reading deleted.")
+        refresh()
+      } catch (err) {
+        toast.error(
+          err instanceof SoloarApiError
+            ? err.message
+            : "Failed to delete solar reading. Please try again.",
+        )
+      }
     },
     [refresh],
   )

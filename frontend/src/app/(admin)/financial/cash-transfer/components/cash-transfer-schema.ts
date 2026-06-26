@@ -32,10 +32,6 @@ export const cashTransferSchema = z
       .trim()
       .max(100, "Reference must be 100 characters or fewer")
       .optional(),
-    postBy: z
-      .number({ error: "Posted By is required" })
-      .int("Posted By must be a whole number")
-      .min(1, "Posted By is required"),
     status: z.enum(["1", "2", "3"]),
   })
   .refine((v) => v.fromBank !== v.toBank, {
@@ -78,7 +74,6 @@ export const cashTransferFormDefaults: CashTransferFormValues = {
   value: 0,
   description: "",
   reference: "",
-  postBy: 1,
   // Server forces 2 (Finish) on create; this is a placeholder for the contract.
   status: "2",
 }
@@ -95,13 +90,18 @@ export function toCashTransferFormValues(
     value: Number(row.value),
     description: row.description ?? "",
     reference: row.reference ?? "",
-    postBy: row.postBy,
     status: String(row.status) as CashTransferFormValues["status"],
   }
 }
 
-/** Map submitted form values into the service input (strings -> numbers). */
-export function toCashTransferInput(values: CashTransferFormValues) {
+/**
+ * Map submitted form values into the service input (strings -> numbers).
+ * `postById` is the signed-in user's id, stamped onto `postBy` at save time.
+ */
+export function toCashTransferInput(
+  values: CashTransferFormValues,
+  postById: number,
+) {
   return {
     fromBank: Number(values.fromBank),
     toBank: Number(values.toBank),
@@ -109,7 +109,7 @@ export function toCashTransferInput(values: CashTransferFormValues) {
     value: values.value,
     description: values.description?.trim() ? values.description.trim() : null,
     reference: values.reference?.trim() ? values.reference.trim() : null,
-    postBy: values.postBy,
+    postBy: postById,
     status: Number(values.status) as CashTransferStatus,
   }
 }

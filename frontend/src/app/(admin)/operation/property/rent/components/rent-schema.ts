@@ -4,6 +4,14 @@ import { z } from "zod"
 import type { Option } from "@/components/hook-form"
 import type { Rent, RentStatus } from "@/types/rent"
 
+/**
+ * An asset option that also carries its owning `businessId`, so the form can
+ * filter the list down to the selected business client-side.
+ */
+export interface BusinessScopedOption extends Option {
+  businessId: number
+}
+
 const money = z.number({ error: "Required" }).min(0, "Cannot be negative")
 
 /**
